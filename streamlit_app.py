@@ -1,22 +1,9 @@
+import PIL.Image as Image
 import streamlit as st
-import pages.grabcut_segmentation as grabcut_segmentation
-import pages.watershed_segmentation as watershed_segmentation
 
-page_map = {
-    "grabcut_segmentation": {
-        "page": grabcut_segmentation.page,
-        "name": "Thuật toán Grabcut",
-    },
-    "watershed_segmentation": {
-        "page": watershed_segmentation.page,
-        "name": "Phân đoạn ký tự bằng Watershed Segmentation",
-    },
-}
-
-input_page = st.sidebar.selectbox(
-    "Chọn trang cần hiển thị",
-    page_map.keys(),
-    format_func=lambda page: page_map[page]["name"],
+st.set_page_config(
+    page_title="Lập trình ứng dụng với OpenCV và Streamlit",
+    page_icon=Image.open("public/images/logo.png"),
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
-
-page_map[input_page]["page"]()
