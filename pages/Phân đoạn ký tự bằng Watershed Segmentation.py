@@ -123,7 +123,7 @@ for i in range(2):
         + str(3 + i * 2)
     )
 
-    for thres in np.linspace(0, 0.1, 100):
+    for thres in np.linspace(0, 0.2, 50):
         masks1 = license_plate_watershed_segmentation(
             train_images[0], (3 + i * 2, 3 + i * 2), thres
         )
@@ -144,7 +144,7 @@ for i in range(2):
 
     chart_data = pd.DataFrame(
         {
-            "thres": np.linspace(0, 0.1, 100),
+            "thres": np.linspace(0, 0.2, 50),
             "average_iou": average_iou,
         }
     )
@@ -157,6 +157,14 @@ st.markdown(
     - kernel_size là kích thước của tham số kernel
     - thres là ngưỡng để xác định true foreground
     - average_iou là giá trị trung bình của IoU trên tập train
+"""
+)
+
+st.markdown(
+    """
+    *Nhận xét*:
+    - average_iou giảm dần khi thres tăng.
+    - Tham số cho kết quả average_iou tốt nhất là kernel_size = 3 và thres = 0.
 """
 )
 
