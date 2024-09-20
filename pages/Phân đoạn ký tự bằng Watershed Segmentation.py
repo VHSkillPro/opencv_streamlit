@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 progress_bar_status = 0
-progress_bar = st.progress(0)
+progress_bar = st.sidebar.progress(0)
 
 st.title("Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự")
 st.header("1. Tập dữ liệu")
