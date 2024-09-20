@@ -94,3 +94,10 @@ cols[3].image(
 )
 
 st.header("2. Xác định tham số tối ưu")
+
+cols = st.columns(2)
+for i in range(2):
+    cols[i].write(
+        "Biểu đồ thể hiện average_iou trên tập train khi thay đổi thres và kernel_size = "
+        + str(3 + i * 2)
+    )
