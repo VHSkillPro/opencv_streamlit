@@ -18,6 +18,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+progress_bar_status = 0
+progress_bar = st.progress(0)
+
 st.title("Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự")
 st.header("1. Tập dữ liệu")
 st.write(
@@ -135,4 +138,9 @@ for i in range(2):
 
         average_iou.append((iou1 + iou2) / 2)
 
+        progress_bar_status += 1
+        progress_bar.progress(progress_bar_status / 200)
+
     cols[i].line_chart(average_iou)
+
+progress_bar.empty()
