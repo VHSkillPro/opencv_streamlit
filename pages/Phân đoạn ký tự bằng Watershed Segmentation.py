@@ -2,6 +2,7 @@ import cv2, os
 import numpy as np
 import PIL.Image as Image
 import streamlit as st
+import pandas as pd
 
 from services.watershed_segmentation.segmentation import (
     get_iou,
@@ -141,6 +142,13 @@ for i in range(2):
         progress_bar_status += 1
         progress_bar.progress(progress_bar_status / 200)
 
-    cols[i].line_chart(average_iou)
+    chart_data = pd.DataFrame(
+        {
+            "thres": np.linspace(0, 0.1, 100),
+            "average_iou": average_iou,
+        }
+    )
+
+    cols[i].line_chart(chart_data, x="Thres", y="Average IoU")
 
 progress_bar.empty()
