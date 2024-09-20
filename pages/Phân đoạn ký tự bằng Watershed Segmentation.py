@@ -151,4 +151,13 @@ for i in range(2):
 
     cols[i].line_chart(chart_data, x="thres", y="average_iou")
 
+st.markdown(
+    """
+    Trong đó:
+    - kernel_size là kích thước của tham số kernel
+    - thres là ngưỡng để xác định true foreground
+    - average_iou là giá trị trung bình của IoU trên tập train
+"""
+)
+
 progress_bar.empty()
