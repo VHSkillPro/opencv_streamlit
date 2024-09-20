@@ -149,6 +149,6 @@ for i in range(2):
         }
     )
 
-    cols[i].line_chart(chart_data, x="Thres", y="Average IoU")
+    cols[i].line_chart(chart_data, x="thres", y="average_iou")
 
 progress_bar.empty()
