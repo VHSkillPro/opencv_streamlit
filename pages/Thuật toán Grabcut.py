@@ -48,10 +48,10 @@ if uploaded_image is not None:
                 orginal_image = cv2.cvtColor(orginal_image, cv2.COLOR_RGB2BGR)
 
                 scale = w / 400
-                min_x = canvas_result.json_data.get("objects")[0]["top"]
-                min_y = canvas_result.json_data.get("objects")[0]["left"]
-                height = canvas_result.json_data.get("objects")[0]["height"]
+                min_x = canvas_result.json_data.get("objects")[0]["left"]
+                min_y = canvas_result.json_data.get("objects")[0]["top"]
                 width = canvas_result.json_data.get("objects")[0]["width"]
+                height = canvas_result.json_data.get("objects")[0]["height"]
 
                 res = grabcut(
                     original_image=orginal_image,
