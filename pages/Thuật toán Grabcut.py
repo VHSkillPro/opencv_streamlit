@@ -50,16 +50,16 @@ if uploaded_image is not None:
                 scale = w / 400
                 min_x = canvas_result.json_data.get("objects")[0]["top"]
                 min_y = canvas_result.json_data.get("objects")[0]["left"]
-                max_x = min_x + canvas_result.json_data.get("objects")[0]["height"]
-                max_y = min_y + canvas_result.json_data.get("objects")[0]["width"]
+                height = canvas_result.json_data.get("objects")[0]["height"]
+                width = canvas_result.json_data.get("objects")[0]["width"]
 
                 res = grabcut(
                     original_image=orginal_image,
                     rect=(
                         int(min_x * scale),
                         int(min_y * scale),
-                        int(max_x * scale),
-                        int(max_y * scale),
+                        int(width * scale),
+                        int(height * scale),
                     ),
                 )
                 st.image(res, channels="BGR", width=400)
