@@ -62,4 +62,11 @@ if uploaded_image is not None:
                         int(max_y * scale),
                     ),
                 )
+                res = cv2.rectangle(
+                    res,
+                    (int(min_y * scale), int(min_x * scale)),
+                    (int(max_y * scale), int(max_x * scale)),
+                    (255, 165, 0),
+                    2,
+                )
                 st.image(res, channels="BGR", width=400)
