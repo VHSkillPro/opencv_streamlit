@@ -21,6 +21,6 @@ if uploaded_file is not None:
 
     faces = detect_faces(image)
     for x, y, w, h in faces:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 10)
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
 
     st.image(image, channels="BGR")
