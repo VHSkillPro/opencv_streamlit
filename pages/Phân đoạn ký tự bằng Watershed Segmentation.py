@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 
 from services.watershed_segmentation.segmentation import (
+    get_dice,
     get_iou,
     get_mask_license_plate,
     license_plate_watershed_segmentation,
@@ -113,20 +114,26 @@ cols[3].image(
 )
 
 st.header("2. Xác định tham số tối ưu")
-
 st.subheader("2.1. Tham số tối ưu")
 
-cols = st.columns(2)
+cols = st.columns(2, gap="large")
+cols[0].image(
+    "./services/watershed_segmentation/iou.jpg",
+    caption="Công thức IoU",
+    use_column_width=True,
+    channels="BGR",
+)
 
-for i in range(2):
-    cols[i].write(
-        "Biểu đồ thể hiện average_iou trên tập train khi thay đổi thres và kernel_size = "
-        + str(3 + i * 2)
-    )
+cols[1].image(
+    "./services/watershed_segmentation/dice_score.png",
+    caption="Công thức Dice Score",
+    use_column_width=True,
+    channels="BGR",
+)
 
 
 @st.cache_data
-def get_average_iou(kernel: np.ndarray, thres: float) -> float:
+def get_average(kernel: np.ndarray, thres: float) -> float:
     masks1 = license_plate_watershed_segmentation(train_images[0], kernel, thres)
     masks2 = license_plate_watershed_segmentation(train_images[1], kernel, thres)
 
@@ -136,15 +143,24 @@ def get_average_iou(kernel: np.ndarray, thres: float) -> float:
     iou1 = get_iou(train_labels[0], mask1)
     iou2 = get_iou(train_labels[1], mask2)
 
-    return (iou1 + iou2) / 2
+    dice_1 = get_dice(train_labels[0], mask1)
+    dice_2 = get_dice(train_labels[1], mask2)
+
+    return ((iou1 + iou2) / 2, (dice_1 + dice_2) / 2)
 
 
-def get_average_iou_train(kernel_size: int) -> np.ndarray:
+def get_average_train(kernel_size: int) -> np.ndarray:
     global progress_bar_status
 
     iou = []
+    dice = []
+
     for thres in np.linspace(0, 1, 100):
-        iou.append(get_average_iou((3 + 2 * kernel_size, 3 + 2 * kernel_size), thres))
+        (average_iou, average_dice) = get_average(
+            (3 + 2 * kernel_size, 3 + 2 * kernel_size), thres
+        )
+        iou.append(average_iou)
+        dice.append(average_dice)
 
         progress_bar_status += 1
         progress_bar.progress(
@@ -152,20 +168,37 @@ def get_average_iou_train(kernel_size: int) -> np.ndarray:
             "Đang vẽ biểu đồ: " + str(progress_bar_status / 2) + "%",
         )
 
-    return iou
+    return (iou, dice)
 
 
 average_ious = [
-    get_average_iou_train(0),
-    get_average_iou_train(1),
+    get_average_train(0),
+    get_average_train(1),
 ]
 
-for i in range(2):
-    cols[i].line_chart(
-        {"thres": np.linspace(0, 1, 100), "average_iou": average_ious[i]},
-        x="thres",
-        y="average_iou",
-    )
+cols = st.columns(2)
+
+cols[0].write("Biểu đồ thể hiện average_iou trên tập train khi thay đổi thres")
+cols[0].line_chart(
+    {
+        "thres": np.linspace(0, 1, 100),
+        "kernel_size=3": average_ious[0][0],
+        "kernel_size=5": average_ious[1][0],
+    },
+    x="thres",
+    y=["kernel_size=3", "kernel_size=5"],
+)
+
+cols[1].write("Biểu đồ thể hiện average_dice_score trên tập train khi thay đổi thres")
+cols[1].line_chart(
+    {
+        "thres": np.linspace(0, 1, 100),
+        "kernel_size=3": average_ious[0][1],
+        "kernel_size=5": average_ious[1][1],
+    },
+    x="thres",
+    y=["kernel_size=3", "kernel_size=5"],
+)
 
 progress_bar.empty()
 
@@ -181,6 +214,7 @@ st.markdown(
     - kernel_size là kích thước của tham số kernel
     - thres là ngưỡng để xác định true foreground
     - average_iou là giá trị trung bình của IoU trên tập train
+    - average_dice_score là giá trị trung bình của Dice score trên tập train
     
     *Nhận xét*:
     - Tham số cho kết quả average_iou tốt nhất là kernel_size = {} và thres = {}
@@ -209,11 +243,21 @@ cols[1].image(
 
 masks = license_plate_watershed_segmentation(train_images[0], (3, 3), thres)
 mask = get_mask_license_plate(masks)
-cols[2].image(mask, caption="Mask của ảnh 1 trong tập train với kernel_size = 3")
+cols[2].image(
+    mask,
+    caption="Mask của ảnh 1 trong tập train với kernel_size = 3, IoU = {:.5f} và Dice Score = {:.5f}".format(
+        get_iou(train_labels[0], mask), get_dice(train_labels[0], mask)
+    ),
+)
 
 masks = license_plate_watershed_segmentation(train_images[0], (5, 5), thres)
 mask = get_mask_license_plate(masks)
-cols[3].image(mask, caption="Mask của ảnh 1 trong tập train với kernel_size = 5")
+cols[3].image(
+    mask,
+    caption="Mask của ảnh 1 trong tập train với kernel_size = 5, IoU = {:.5f} và Dice Score = {:.5f}".format(
+        get_iou(train_labels[0], mask), get_dice(train_labels[0], mask)
+    ),
+)
 
 cols = st.columns(4)
 cols[0].image(
@@ -231,11 +275,21 @@ cols[1].image(
 
 masks = license_plate_watershed_segmentation(train_images[1], (3, 3), thres)
 mask = get_mask_license_plate(masks)
-cols[2].image(mask, caption="Mask của ảnh 2 trong tập train với kernel_size = 3")
+cols[2].image(
+    mask,
+    caption="Mask của ảnh 2 trong tập train với kernel_size = 3, IoU = {:.5f} và Dice Score = {:.5f}".format(
+        get_iou(train_labels[1], mask), get_dice(train_labels[1], mask)
+    ),
+)
 
 masks = license_plate_watershed_segmentation(train_images[1], (5, 5), thres)
 mask = get_mask_license_plate(masks)
-cols[3].image(mask, caption="Mask của ảnh 2 trong tập train với kernel_size = 5")
+cols[3].image(
+    mask,
+    caption="Mask của ảnh 2 trong tập train với kernel_size = 5, IoU = {:.5f} và Dice Score = {:.5f}".format(
+        get_iou(train_labels[1], mask), get_dice(train_labels[1], mask)
+    ),
+)
 
 st.header("3. Kết quả phân đoạn ký tự trên tập test")
 
@@ -251,15 +305,22 @@ cols[1].image(
     caption="Ground truth của ảnh 1 trong tập test",
     use_column_width=True,
 )
+
+mask = get_mask_license_plate(
+    license_plate_watershed_segmentation(
+        test_images[0],
+        (int(best["kernel_size"]), int(best["kernel_size"])),
+        best["thres"],
+    )
+)
 cols[2].image(
-    get_mask_license_plate(
-        license_plate_watershed_segmentation(
-            test_images[0],
-            (int(best["kernel_size"]), int(best["kernel_size"])),
-            best["thres"],
-        )
+    mask,
+    caption="Mask của ảnh 1 trong tập test với kernel_size = {}, thres = {} và IoU = {:.5f} và Dice Score = {:.5f} ".format(
+        best["kernel_size"],
+        best["thres"] / 100,
+        get_iou(test_labels[0], mask),
+        get_dice(test_labels[0], mask),
     ),
-    caption="Mask của ảnh 1 trong tập test",
     use_column_width=True,
 )
 
@@ -275,14 +336,21 @@ cols[1].image(
     caption="Ground truth của ảnh 2 trong tập test",
     use_column_width=True,
 )
+
+mask = get_mask_license_plate(
+    license_plate_watershed_segmentation(
+        test_images[1],
+        (int(best["kernel_size"]), int(best["kernel_size"])),
+        best["thres"],
+    )
+)
 cols[2].image(
-    get_mask_license_plate(
-        license_plate_watershed_segmentation(
-            test_images[1],
-            (int(best["kernel_size"]), int(best["kernel_size"])),
-            best["thres"],
-        )
+    mask,
+    caption="Mask của ảnh 2 trong tập test với kernel_size = {}, thres = {} và IoU = {:.5f} và Dice Score = {:.5f} ".format(
+        best["kernel_size"],
+        best["thres"] / 100,
+        get_iou(test_labels[1], mask),
+        get_dice(test_labels[1], mask),
     ),
-    caption="Mask của ảnh 2 trong tập test",
     use_column_width=True,
 )
