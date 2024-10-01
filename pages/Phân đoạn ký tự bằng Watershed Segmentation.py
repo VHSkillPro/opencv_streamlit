@@ -277,7 +277,7 @@ def display_result():
     cols[4].columns([2, 2, 1])[1].write("**Thông số**")
 
     for i in range(len(test_images)):
-        cols = st.columns(5, vertical_alignment="center")
+        cols = st.columns(5)
 
         with cols[0]:
             st.image(
@@ -310,7 +310,8 @@ def display_result():
             )
             _label = np.copy(test_labels[i])
             _label[_label == 255] = 1
-            iou = get_iou(_label, mask)
+            iou_iou = get_iou(_label, mask)
+            iou_dice = get_dice_score(_label, mask)
 
         with cols[3]:
             masks = license_plate_watershed_segmentation(
@@ -328,16 +329,23 @@ def display_result():
             )
             _label = np.copy(test_labels[i])
             _label[_label == 255] = 1
-            dice = get_dice_score(_label, mask)
+            dice_iou = get_iou(_label, mask)
+            dice_dice = get_dice_score(_label, mask)
 
         with cols[4]:
             st.markdown(
                 """
-                - IoU: ${:.6f}$
-                - Dice Score: ${:.6f}$
+                - Tham số tối ưu theo IoU:
+                    - IoU: ${:.6f}$
+                    - Dice Score: ${:.6f}$
+                - Tham số tối ưu theo DICE:
+                    - IoU: ${:.6f}$
+                    - Dice Score: ${:.6f}$
                 """.format(
-                    iou,
-                    dice,
+                    iou_iou,
+                    iou_dice,
+                    dice_iou,
+                    dice_dice,
                 )
             )
 
