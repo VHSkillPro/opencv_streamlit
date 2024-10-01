@@ -1,17 +1,348 @@
 import cv2, os
 import numpy as np
-import PIL.Image as Image
-import streamlit as st
 import pandas as pd
+import streamlit as st
+from pathlib import Path
+import PIL.Image as Image
 
 from services.watershed_segmentation.segmentation import (
-    get_dice,
+    get_dice_score,
     get_iou,
     get_mask_license_plate,
     license_plate_watershed_segmentation,
 )
 
 __SERVICE_DIR = "./services/watershed_segmentation"
+__IMAGES_DIR = os.path.join(__SERVICE_DIR, "datasets/images")
+__LABELS_DIR = os.path.join(__SERVICE_DIR, "datasets/labels")
+
+train_images_name = os.listdir(os.path.join(__IMAGES_DIR, "train"))
+test_images_name = os.listdir(os.path.join(__IMAGES_DIR, "test"))
+
+train_images, train_labels = [], []
+for image_name in train_images_name:
+    train_images.append(cv2.imread(os.path.join(__IMAGES_DIR, "train", image_name)))
+    label_name = Path(image_name).stem + ".png"
+    train_labels.append(
+        cv2.imread(
+            os.path.join(__LABELS_DIR, "train", label_name), cv2.IMREAD_GRAYSCALE
+        )
+    )
+
+test_images, test_labels = [], []
+for image_name in test_images_name:
+    test_images.append(cv2.imread(os.path.join(__IMAGES_DIR, "test", image_name)))
+    label_name = Path(image_name).stem + ".png"
+    test_labels.append(
+        cv2.imread(os.path.join(__LABELS_DIR, "test", label_name), cv2.IMREAD_GRAYSCALE)
+    )
+
+# Load average ious and calc best param iou
+df = pd.read_csv(os.path.join(__SERVICE_DIR, "average_ious.csv"))
+average_ious = df.to_numpy()[:, 1:].T
+
+best_param_iou = {
+    "kernel_size": 2
+    * np.argmax(max(average_ious[i]) for i in range(average_ious.shape[0]))
+    + 3,
+    "thres": (np.argmax(average_ious) % average_ious.shape[1]) / average_ious.shape[1],
+}
+
+# Load average dices and calc best param dice
+df = pd.read_csv(os.path.join(__SERVICE_DIR, "average_dices.csv"))
+average_dices = df.to_numpy()[:, 1:].T
+
+best_param_dice = {
+    "kernel_size": 2
+    * np.argmax(max(average_dices[i]) for i in range(average_dices.shape[0]))
+    + 3,
+    "thres": (np.argmax(average_dices) % average_dices.shape[1])
+    / average_dices.shape[1],
+}
+
+# ----------------------------------------------------------
+
+
+def display_datasets():
+    st.header("1. Tập dữ liệu")
+    st.write(
+        "- Tập dữ liệu bao gồm $4$ ảnh chia thành hai tập bao gồm tập train và tập test, mỗi tập gồm $2$ ảnh."
+    )
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.subheader("1.1. Tập train")
+        sub_cols = st.columns(2)
+
+        for i in range(2):
+            sub_cols[i].image(
+                train_images[i],
+                caption=f"Ảnh {i+1} trong tập train",
+                use_column_width=True,
+                channels="BGR",
+            )
+            sub_cols[i].image(
+                train_labels[i],
+                caption=f"Ground truth của ảnh {i+1} trong tập train",
+                use_column_width=True,
+            )
+
+    with cols[1]:
+        st.subheader("1.2. Tập test")
+        sub_cols = st.columns(2)
+
+        for i in range(2):
+            sub_cols[i].image(
+                test_images[i],
+                caption=f"Ảnh {i+1} trong tập test",
+                use_column_width=True,
+                channels="BGR",
+            )
+            sub_cols[i].image(
+                test_labels[i],
+                caption=f"Ground truth của ảnh {i+1} trong tập test",
+                use_column_width=True,
+            )
+
+
+def display_tranning_process():
+    st.header("2. Quá trình huấn luyện")
+
+    def display_pipline():
+        st.subheader("2.1. Quá trình phân đoạn ký tự bằng Watershed Segmentation")
+
+    def display_metrics():
+        st.subheader("2.2. Độ đo IoU và Dice Score")
+
+        st.markdown(
+            """
+            - IoU là một độ đo phổ biến để đánh giá mức độ chồng lấn giữa hai vùng trong ảnh, 
+            được tính bằng cách chia diện tích phần giao của hai hình cho diện tích phần hợp của hai hình đó.
+            - Dice Score là một độ đo phổ biến được sử dụng để đánh giá mức độ tương đồng giữa hai tập hợp, 
+            được tính bằng cách lấy tổng số phần tử của phần giao của hai tập hợp chia cho tổng số phần tử của cả hai tập hợp.
+            """
+        )
+        st.columns([1, 2, 1])[1].image(
+            os.path.join(__SERVICE_DIR, "iou_vs_dice.png"),
+            use_column_width=True,
+            caption="Công thức IoU và Dice Score (Dice Coefficient)",
+        )
+
+    def display_hyperparameters():
+        st.subheader("2.3. Tham số tối ưu")
+        cols = st.columns(2, gap="medium")
+
+        with cols[0]:
+            st.markdown("#### 2.3.1. Tham số tối ưu theo IoU")
+            st.write("- Biểu đồ thể hiện Average IoU trên tập train khi thay đổi thres")
+
+            st.line_chart(
+                {
+                    "thres": np.linspace(0, 1, average_ious.shape[1]),
+                    "kernel_size = 3": average_ious[0],
+                    "kernel_size = 5": average_ious[1],
+                    "kernel_size = 7": average_ious[2],
+                    "kernel_size = 9": average_ious[3],
+                },
+                x="thres",
+                y=[
+                    "kernel_size = 3",
+                    "kernel_size = 5",
+                    "kernel_size = 7",
+                    "kernel_size = 9",
+                ],
+                y_label="Average IoU",
+            )
+
+            st.markdown(
+                """
+                - Average IoU tốt nhất: ${:.6f}$
+                - Tham số cho kết quả Average IoU tốt nhất là:
+                    - kernel_size = ${}$
+                    - thres = ${:.6f}$
+                """.format(
+                    np.max(average_ious),
+                    best_param_iou["kernel_size"],
+                    best_param_iou["thres"],
+                )
+            )
+
+        with cols[1]:
+            st.markdown("#### 2.3.2. Tham số tối ưu theo DICE")
+            st.write(
+                "- Biểu đồ thể hiện Average DICE trên tập train khi thay đổi thres"
+            )
+
+            st.line_chart(
+                {
+                    "thres": np.linspace(0, 1, average_dices.shape[1]),
+                    "kernel_size = 3": average_dices[0],
+                    "kernel_size = 5": average_dices[1],
+                    "kernel_size = 7": average_dices[2],
+                    "kernel_size = 9": average_dices[3],
+                },
+                x="thres",
+                y=[
+                    "kernel_size = 3",
+                    "kernel_size = 5",
+                    "kernel_size = 7",
+                    "kernel_size = 9",
+                ],
+                y_label="Average DICE",
+            )
+
+            st.markdown(
+                """
+                - Average DICE tốt nhất: ${:.6f}$
+                - Tham số cho kết quả Average DICE tốt nhất là:
+                    - kernel_size = ${}$
+                    - thres = ${:.6f}$
+                """.format(
+                    np.max(average_dices),
+                    best_param_dice["kernel_size"],
+                    best_param_dice["thres"],
+                )
+            )
+
+    def display_visualize():
+        st.subheader("2.4. Minh hoạ mask của tập train theo từng bộ tham số")
+        cols = st.columns([1, 2], gap="medium")
+        kernel_size = cols[0].selectbox(
+            "Chọn kernel_size:", (3, 5, 7, 9), format_func=lambda x: f"{x} x {x}"
+        )
+        thres = cols[1].slider(
+            "Chọn thres:", min_value=0.0, max_value=1.0, step=1 / 500
+        )
+
+        cols = st.columns(4)
+        cols[0].columns([2, 2, 1])[1].write("**Ảnh gốc**")
+        cols[1].columns([1, 2, 1])[1].write("**Ground truth**")
+        cols[2].columns([2, 2, 1])[1].write("**Mask**")
+        cols[3].columns([2, 2, 1])[1].write("**Thông số**")
+
+        for i in range(2):
+            cols = st.columns(4, vertical_alignment="center")
+
+            with cols[0]:
+                st.image(
+                    train_images[i],
+                    caption=f"Ảnh {i+1} trong tập train",
+                    use_column_width=True,
+                    channels="BGR",
+                )
+
+            with cols[1]:
+                st.image(
+                    train_labels[i],
+                    caption=f"Ground truth của ảnh {i+1} trong tập train",
+                    use_column_width=True,
+                )
+
+            with cols[2]:
+                masks = license_plate_watershed_segmentation(
+                    train_images[i], kernel_size, thres
+                )
+                mask = get_mask_license_plate(masks)
+                _mask = mask.copy()
+                _mask[_mask == 1] = 255
+                st.image(_mask, caption=f"Mask của ảnh {i+1} trong tập train")
+
+            with cols[3]:
+                _label = np.copy(train_labels[i])
+                _label[_label == 255] = 1
+                st.markdown(
+                    """
+                    - IoU: ${:.6f}$
+                    - Dice Score: ${:.6f}$
+                    """.format(
+                        get_iou(_label, mask),
+                        get_dice_score(_label, mask),
+                    )
+                )
+
+    display_pipline()
+    display_metrics()
+    display_hyperparameters()
+    display_visualize()
+
+
+def display_result():
+    st.header("3. Kết quả phân đoạn ký tự trên tập test")
+
+    cols = st.columns(5)
+    cols[0].columns([2, 2, 1])[1].write("**Ảnh gốc**")
+    cols[1].columns([1, 2, 1])[1].write("**Ground truth**")
+    cols[2].columns([1, 2, 1])[1].write("**Mask theo IoU**")
+    cols[3].columns([1, 2, 1])[1].write("**Mask theo DICE**")
+    cols[4].columns([2, 2, 1])[1].write("**Thông số**")
+
+    for i in range(len(test_images)):
+        cols = st.columns(5, vertical_alignment="center")
+
+        with cols[0]:
+            st.image(
+                test_images[i],
+                caption=f"Ảnh {i+1} trong tập test",
+                use_column_width=True,
+                channels="BGR",
+            )
+
+        with cols[1]:
+            st.image(
+                test_labels[i],
+                caption=f"Ground truth của ảnh {i+1} trong tập test",
+                use_column_width=True,
+            )
+
+        with cols[2]:
+            masks = license_plate_watershed_segmentation(
+                test_images[i],
+                int(best_param_iou["kernel_size"]),
+                best_param_iou["thres"],
+            )
+            mask = get_mask_license_plate(masks)
+            _mask = mask.copy()
+            _mask[_mask == 1] = 255
+            st.image(
+                _mask,
+                caption=f"Mask theo IoU của ảnh {i+1} trong tập test",
+                use_column_width=True,
+            )
+            _label = np.copy(test_labels[i])
+            _label[_label == 255] = 1
+            iou = get_iou(_label, mask)
+
+        with cols[3]:
+            masks = license_plate_watershed_segmentation(
+                test_images[i],
+                int(best_param_dice["kernel_size"]),
+                best_param_dice["thres"],
+            )
+            mask = get_mask_license_plate(masks)
+            _mask = mask.copy()
+            _mask[_mask == 1] = 255
+            st.image(
+                _mask,
+                caption=f"Mask theo DICE của ảnh {i+1} trong tập test",
+                use_column_width=True,
+            )
+            _label = np.copy(test_labels[i])
+            _label[_label == 255] = 1
+            dice = get_dice_score(_label, mask)
+
+        with cols[4]:
+            st.markdown(
+                """
+                - IoU: ${:.6f}$
+                - Dice Score: ${:.6f}$
+                """.format(
+                    iou,
+                    dice,
+                )
+            )
+
+
+# ----------------------------------------------------------
 
 st.set_page_config(
     page_title="Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự",
@@ -20,337 +351,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-progress_bar_status = 0
-progress_bar = st.sidebar.progress(0, "Đang vẽ biểu đồ: 0%")
-
 st.title("Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự")
-st.header("1. Tập dữ liệu")
-st.write(
-    "- Tập dữ liệu bao gồm 4 ảnh chia thành hai tập train và tập test, mỗi tập gồm 2 ảnh."
-)
 
-train_images = [
-    cv2.imread(os.path.join(__SERVICE_DIR, "datasets/images/train/13xemay941.jpg")),
-    cv2.imread(os.path.join(__SERVICE_DIR, "datasets/images/train/2xemay103.jpg")),
-]
-
-test_images = [
-    cv2.imread(os.path.join(__SERVICE_DIR, "datasets/images/test/1xemay1243.jpg")),
-    cv2.imread(os.path.join(__SERVICE_DIR, "datasets/images/test/2xemay1189.jpg")),
-]
-
-train_labels = [
-    cv2.imread(
-        os.path.join(__SERVICE_DIR, "datasets/labels/train/13xemay941.png"),
-        cv2.IMREAD_GRAYSCALE,
-    ),
-    cv2.imread(
-        os.path.join(__SERVICE_DIR, "datasets/labels/train/2xemay103.png"),
-        cv2.IMREAD_GRAYSCALE,
-    ),
-]
-
-test_labels = [
-    cv2.imread(
-        os.path.join(__SERVICE_DIR, "datasets/labels/test/1xemay1243.png"),
-        cv2.IMREAD_GRAYSCALE,
-    ),
-    cv2.imread(
-        os.path.join(__SERVICE_DIR, "datasets/labels/test/2xemay1189.png"),
-        cv2.IMREAD_GRAYSCALE,
-    ),
-]
-
-# Display images
-cols = st.columns(4)
-cols[0].image(
-    train_images[0],
-    caption="Ảnh 1 trong tập train",
-    use_column_width=True,
-    channels="BGR",
-)
-cols[1].image(
-    train_images[1],
-    caption="Ảnh 2 trong tập train",
-    use_column_width=True,
-    channels="BGR",
-)
-
-cols[2].image(
-    test_images[0],
-    caption="Ảnh 1 trong tập test",
-    use_column_width=True,
-    channels="BGR",
-)
-cols[3].image(
-    test_images[1],
-    caption="Ảnh 2 trong tập test",
-    use_column_width=True,
-    channels="BGR",
-)
-
-# Display ground truth
-cols = st.columns(4)
-cols[0].image(
-    train_labels[0],
-    caption="Ground truth của ảnh 1 trong tập train",
-    use_column_width=True,
-)
-cols[1].image(
-    train_labels[1],
-    caption="Ground truth của ảnh 2 trong tập train",
-    use_column_width=True,
-)
-
-cols[2].image(
-    test_labels[0],
-    caption="Ground truth của ảnh 1 trong tập test",
-    use_column_width=True,
-)
-cols[3].image(
-    test_labels[1],
-    caption="Ground truth của ảnh 2 trong tập test",
-    use_column_width=True,
-)
-
-st.header("2. Xác định tham số tối ưu")
-st.subheader("2.1. Tham số tối ưu")
-
-cols = st.columns(2, gap="large")
-cols[0].image(
-    "./services/watershed_segmentation/iou.jpg",
-    caption="Công thức IoU",
-    use_column_width=True,
-    channels="BGR",
-)
-
-cols[1].image(
-    "./services/watershed_segmentation/dice_score.png",
-    caption="Công thức Dice Score",
-    use_column_width=True,
-    channels="BGR",
-)
-
-
-@st.cache_data
-def get_average(kernel: np.ndarray, thres: float) -> float:
-    masks1 = license_plate_watershed_segmentation(train_images[0], kernel, thres)
-    masks2 = license_plate_watershed_segmentation(train_images[1], kernel, thres)
-
-    mask1 = get_mask_license_plate(masks1)
-    mask2 = get_mask_license_plate(masks2)
-
-    iou1 = get_iou(train_labels[0], mask1)
-    iou2 = get_iou(train_labels[1], mask2)
-
-    dice_1 = get_dice(train_labels[0], mask1)
-    dice_2 = get_dice(train_labels[1], mask2)
-
-    return ((iou1 + iou2) / 2, (dice_1 + dice_2) / 2)
-
-
-def get_average_train(kernel_size: int) -> np.ndarray:
-    global progress_bar_status
-
-    iou = []
-    dice = []
-
-    for thres in np.linspace(0, 1, 100):
-        (average_iou, average_dice) = get_average(
-            (3 + 2 * kernel_size, 3 + 2 * kernel_size), thres
-        )
-        iou.append(average_iou)
-        dice.append(average_dice)
-
-        progress_bar_status += 1
-        progress_bar.progress(
-            progress_bar_status / 200,
-            "Đang vẽ biểu đồ: " + str(progress_bar_status / 2) + "%",
-        )
-
-    return (iou, dice)
-
-
-average_ious = [
-    get_average_train(0),
-    get_average_train(1),
-]
-
-cols = st.columns(2)
-
-cols[0].write("Biểu đồ thể hiện average_iou trên tập train khi thay đổi thres")
-cols[0].line_chart(
-    {
-        "thres": np.linspace(0, 1, 100),
-        "kernel_size=3": average_ious[0][0],
-        "kernel_size=5": average_ious[1][0],
-    },
-    x="thres",
-    y=["kernel_size=3", "kernel_size=5"],
-)
-
-cols[1].write("Biểu đồ thể hiện average_dice_score trên tập train khi thay đổi thres")
-cols[1].line_chart(
-    {
-        "thres": np.linspace(0, 1, 100),
-        "kernel_size=3": average_ious[0][1],
-        "kernel_size=5": average_ious[1][1],
-    },
-    x="thres",
-    y=["kernel_size=3", "kernel_size=5"],
-)
-
-progress_bar.empty()
-
-best = {
-    "kernel_size": np.argmax([max(average_ious[0]), max(average_ious[1])]) * 2 + 3,
-    "thres": np.argmax([average_ious[0], average_ious[1]]),
-}
-
-
-st.markdown(
-    """
-    Trong đó:
-    - kernel_size là kích thước của tham số kernel
-    - thres là ngưỡng để xác định true foreground
-    - average_iou là giá trị trung bình của IoU trên tập train
-    - average_dice_score là giá trị trung bình của Dice score trên tập train
-    
-    *Nhận xét*:
-    - Tham số cho kết quả average_iou tốt nhất là kernel_size = {} và thres = {}
-""".format(
-        best["kernel_size"], best["thres"] / 100
-    )
-)
-
-st.subheader("2.2. Minh hoạ mask của tập train theo từng tham số")
-
-thres = st.slider("Chọn ngưỡng thres:", min_value=0.0, max_value=1.0, step=0.01)
-
-cols = st.columns(4)
-cols[0].image(
-    train_images[0],
-    caption="Ảnh 1 trong tập train",
-    use_column_width=True,
-    channels="BGR",
-)
-
-cols[1].image(
-    train_labels[0],
-    caption="Ground truth của ảnh 1 trong tập train",
-    use_column_width=True,
-)
-
-masks = license_plate_watershed_segmentation(train_images[0], (3, 3), thres)
-mask = get_mask_license_plate(masks)
-cols[2].image(
-    mask,
-    caption="Mask của ảnh 1 trong tập train với kernel_size = 3, IoU = {:.5f} và Dice Score = {:.5f}".format(
-        get_iou(train_labels[0], mask), get_dice(train_labels[0], mask)
-    ),
-)
-
-masks = license_plate_watershed_segmentation(train_images[0], (5, 5), thres)
-mask = get_mask_license_plate(masks)
-cols[3].image(
-    mask,
-    caption="Mask của ảnh 1 trong tập train với kernel_size = 5, IoU = {:.5f} và Dice Score = {:.5f}".format(
-        get_iou(train_labels[0], mask), get_dice(train_labels[0], mask)
-    ),
-)
-
-cols = st.columns(4)
-cols[0].image(
-    train_images[1],
-    caption="Ảnh 2 trong tập train",
-    use_column_width=True,
-    channels="BGR",
-)
-
-cols[1].image(
-    train_labels[1],
-    caption="Ground truth của ảnh 2 trong tập train",
-    use_column_width=True,
-)
-
-masks = license_plate_watershed_segmentation(train_images[1], (3, 3), thres)
-mask = get_mask_license_plate(masks)
-cols[2].image(
-    mask,
-    caption="Mask của ảnh 2 trong tập train với kernel_size = 3, IoU = {:.5f} và Dice Score = {:.5f}".format(
-        get_iou(train_labels[1], mask), get_dice(train_labels[1], mask)
-    ),
-)
-
-masks = license_plate_watershed_segmentation(train_images[1], (5, 5), thres)
-mask = get_mask_license_plate(masks)
-cols[3].image(
-    mask,
-    caption="Mask của ảnh 2 trong tập train với kernel_size = 5, IoU = {:.5f} và Dice Score = {:.5f}".format(
-        get_iou(train_labels[1], mask), get_dice(train_labels[1], mask)
-    ),
-)
-
-st.header("3. Kết quả phân đoạn ký tự trên tập test")
-
-cols = st.columns(3)
-cols[0].image(
-    test_images[0],
-    caption="Ảnh 1 trong tập test",
-    use_column_width=True,
-    channels="BGR",
-)
-cols[1].image(
-    test_labels[0],
-    caption="Ground truth của ảnh 1 trong tập test",
-    use_column_width=True,
-)
-
-mask = get_mask_license_plate(
-    license_plate_watershed_segmentation(
-        test_images[0],
-        (int(best["kernel_size"]), int(best["kernel_size"])),
-        best["thres"],
-    )
-)
-cols[2].image(
-    mask,
-    caption="Mask của ảnh 1 trong tập test với kernel_size = {}, thres = {} và IoU = {:.5f} và Dice Score = {:.5f} ".format(
-        best["kernel_size"],
-        best["thres"] / 100,
-        get_iou(test_labels[0], mask),
-        get_dice(test_labels[0], mask),
-    ),
-    use_column_width=True,
-)
-
-cols = st.columns(3)
-cols[0].image(
-    test_images[1],
-    caption="Ảnh 2 trong tập test",
-    use_column_width=True,
-    channels="BGR",
-)
-cols[1].image(
-    test_labels[1],
-    caption="Ground truth của ảnh 2 trong tập test",
-    use_column_width=True,
-)
-
-mask = get_mask_license_plate(
-    license_plate_watershed_segmentation(
-        test_images[1],
-        (int(best["kernel_size"]), int(best["kernel_size"])),
-        best["thres"],
-    )
-)
-cols[2].image(
-    mask,
-    caption="Mask của ảnh 2 trong tập test với kernel_size = {}, thres = {} và IoU = {:.5f} và Dice Score = {:.5f} ".format(
-        best["kernel_size"],
-        best["thres"] / 100,
-        get_iou(test_labels[1], mask),
-        get_dice(test_labels[1], mask),
-    ),
-    use_column_width=True,
-)
+display_datasets()
+display_tranning_process()
+display_result()
