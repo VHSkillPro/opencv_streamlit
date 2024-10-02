@@ -110,6 +110,19 @@ def display_tranning_process():
 
     def display_pipline():
         st.subheader("2.1. Quá trình phân đoạn ký tự bằng Watershed Segmentation")
+        st.image(os.path.join(__SERVICE_DIR, "pipeline_watershed.png"))
+        st.markdown(
+            """
+            Mô tả các bước trong quá trình phân đoạn ký tự bằng Watershed Segmentation:
+            - (1) Sử dụng **Otsu's Binarization** để chuyển đổi thành ảnh nhị phân.
+            - (2) Xác định **true background** (vùng màu đen).
+            - (3) Xác định **Distance Transform**.
+            - (4) Xác định **true foreground** dựa trên ngưỡng `thres` (vùng màu trắng).
+            - (5.1), (5.2) Kết hợp **true background** và **true foreground** để tìm ra **vùng unknow**.
+            - (6) Sử dụng thuật toán **Watersed Segmentation** để phân đoạn ký tự.
+
+            """
+        )
 
     def display_metrics():
         st.subheader("2.2. Độ đo IoU và Dice Score")
