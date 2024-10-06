@@ -4,3 +4,5 @@ matplotlib
 opencv-python-headless
 streamlit-drawable-canvas==0.8.0
 scikit-learn
+google-cloud-firestore
+firebase_admin
