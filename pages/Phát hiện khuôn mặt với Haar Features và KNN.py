@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import streamlit as st
 
-from services.face_detection.face_detection import detect_faces
+from services.face_detection.extractor import Extractor, get_iou
 
 st.set_page_config(
     page_title="Phát hiện khuôn mặt với Haar Features và KNN",
@@ -19,6 +19,25 @@ negative_images_name = os.listdir(os.path.join(__SERVICE_DIR, "train/negatives")
 
 k_knn = np.load(os.path.join(__SERVICE_DIR, "k.npy"))
 average_iou_each_k = np.load(os.path.join(__SERVICE_DIR, "average_iou_each_k.npy"))
+
+k_knn_max = k_knn[np.argmax(average_iou_each_k)]
+average_iou_max = np.max(average_iou_each_k)
+
+X, y = [], []
+extractor = Extractor(os.path.join(__SERVICE_DIR, "cascade.xml"), k_knn_max)
+for image_name in os.listdir(os.path.join(__SERVICE_DIR, "train/positives")):
+    image = cv2.imread(os.path.join(__SERVICE_DIR, "train/positives", image_name))
+    X.append(extractor.extract_feature_image(image))
+    y.append(1)
+
+for image_name in os.listdir(os.path.join(__SERVICE_DIR, "train/negatives")):
+    image = cv2.imread(os.path.join(__SERVICE_DIR, "train/negatives", image_name))
+    X.append(extractor.extract_feature_image(image))
+    y.append(0)
+
+X = np.array(X)
+y = np.array(y)
+extractor.fit(X, y)
 
 # ---------------------------------------------
 
@@ -135,11 +154,66 @@ def display_training():
         y_label="Average IoU",
     )
 
-    st.subheader("2.3. Kết quả huấn luyện")
+    st.markdown(
+        f"""
+        - Kết quả sau khi huấn luyện:
+            - Tham số **k** tốt nhất: ${k_knn_max}$.
+            - **Average IoU** tốt nhất: ${average_iou_max}$.
+        """
+    )
+
+    @st.fragment
+    def display_result_test():
+        st.subheader("2.3. Kết quả trên tập dữ liệu kiểm thử")
+        with open(os.path.join(__SERVICE_DIR, "tests/labels/labels.txt")) as f:
+            for i in range(2):
+                _cols = st.columns(5)
+                for j in range(5):
+                    _data = f.readline().strip().split()
+                    _img_path = os.path.join(__SERVICE_DIR, "tests/images", _data[0])
+                    _x, _y, _w, _h = map(int, _data[2:])
+                    _image = cv2.imread(_img_path)
+
+                    _height, _width = _image.shape[:2]
+                    _ground_truth = np.zeros((_height, _width), dtype=np.uint8)
+                    _ground_truth[_y : _y + _h, _x : _x + _w] = 1
+
+                    _mask = np.zeros((_height, _width), dtype=np.uint8)
+                    with open(
+                        os.path.join(__SERVICE_DIR, "tests/results", _data[0] + ".txt")
+                    ) as fi:
+                        _faces = fi.readlines()
+                        for _face in _faces:
+                            x, y, w, h = map(int, _face.strip().split())
+                            _mask[y : y + h, x : x + w] = 1
+                            _image = cv2.rectangle(
+                                _image, (x, y), (x + w, y + h), (0, 255, 255), 2
+                            )
+
+                    _iou = get_iou(_ground_truth, _mask)
+                    _cols[j].image(
+                        _image,
+                        use_column_width=True,
+                        channels="BGR",
+                        caption=f"IoU: {_iou:.5f}",
+                    )
+
+    display_result_test()
 
 
 def display_result():
-    st.header("3. Kết quả")
+    st.header("3. Ứng dụng phát hiện khuôn mặt")
+    uploaded_file = st.file_uploader("Chọn một file ảnh", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        with st.spinner("Đang phát hiện khuôn mặt..."):
+            image = Image.open(uploaded_file)
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            faces = extractor.detect_multiscale(image)
+            for x, y, w, h in faces:
+                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
+
+            st.image(image, channels="BGR")
 
 
 # ---------------------------------------------
@@ -149,15 +223,3 @@ st.title("Phát hiện khuôn mặt với Haar Features và KNN")
 display_datasets()
 display_training()
 display_result()
-
-uploaded_file = st.file_uploader("Chọn một file ảnh", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-    faces = detect_faces(image)
-    for x, y, w, h in faces:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
-
-    st.image(image, channels="BGR")

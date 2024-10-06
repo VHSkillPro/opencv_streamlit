@@ -68,3 +68,10 @@ class Extractor:
             scale /= scale_factor
 
         return faces
+
+
+def get_iou(ground_truth: np.ndarray, mask: np.ndarray):
+    """Calculate the Intersection over Union (IoU) between the ground truth and the mask"""
+    intersection = np.logical_and(ground_truth, mask)
+    union = np.logical_or(ground_truth, mask)
+    return np.sum(intersection) / np.sum(union)
