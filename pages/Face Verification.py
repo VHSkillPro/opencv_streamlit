@@ -1,15 +1,15 @@
+import json
 import datetime
+import pandas as pd
 from PIL import Image
 import streamlit as st
 from google.cloud import firestore, storage
-import pandas as pd
 
-db = firestore.Client.from_service_account_json(
-    "./face-recognize-7d75c-firebase-adminsdk-e2xa8-fe77725085.json"
+key_dict = json.loads(st.secrets["textkey"])
+db = firestore.Client.from_service_account_info(key_dict)
+bucket = storage.Client.from_service_account_info(key_dict).get_bucket(
+    "face-recognize-7d75c.appspot.com"
 )
-bucket = storage.Client.from_service_account_json(
-    "./face-recognize-7d75c-firebase-adminsdk-e2xa8-fe77725085.json"
-).get_bucket("face-recognize-7d75c.appspot.com")
 
 st.set_page_config(
     page_title="Face Verification",
