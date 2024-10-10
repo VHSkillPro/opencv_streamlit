@@ -120,7 +120,7 @@ def display_tranning_process():
             - (2) Sử dụng **Otsu's Binarization** để chuyển đổi thành ảnh nhị phân.
             - (3) Xác định **True Background** (vùng màu đen) bằng toán tử **Dilation**.
             - (4) Xác định **Distance Transform**.
-            - (5) Xác định **True Foreground** dựa trên ngưỡng `thres` (vùng màu trắng) với công thức $D(i, j) \ge thres * max(D)$, trong đó:.
+            - (5) Xác định **True Foreground** dựa trên ngưỡng `thres` (vùng màu trắng) với công thức $D(i, j) > thres * max(D)$, trong đó:
                 - $D(i, j)$ là giá trị của **Distance Transform** tại pixel $(i, j)$.
                 - $thres$ là ngưỡng.
                 - $max(D)$ là giá trị lớn nhất của **Distance Transform**.
