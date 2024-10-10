@@ -20,6 +20,8 @@ def license_plate_watershed_segmentation(
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
     gray_scale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray_scale = cv2.GaussianBlur(gray_scale, (kernel_size, kernel_size), 0)
+
     _, thresh = cv2.threshold(
         gray_scale, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     )

@@ -110,17 +110,23 @@ def display_tranning_process():
 
     def display_pipline():
         st.subheader("2.1. Quá trình phân đoạn ký tự bằng Watershed Segmentation")
-        st.image(os.path.join(__SERVICE_DIR, "pipeline_watershed.png"))
+        st.image(
+            os.path.join(__SERVICE_DIR, "pipeline_watershed.png"), use_column_width=True
+        )
         st.markdown(
             """
             Mô tả các bước trong quá trình phân đoạn ký tự bằng Watershed Segmentation:
-            - (1) Sử dụng **Otsu's Binarization** để chuyển đổi thành ảnh nhị phân.
-            - (2) Xác định **true background** (vùng màu đen).
-            - (3) Xác định **Distance Transform**.
-            - (4) Xác định **true foreground** dựa trên ngưỡng `thres` (vùng màu trắng).
-            - (5.1), (5.2) Kết hợp **true background** và **true foreground** để tìm ra **vùng unknow**.
-            - (6) Sử dụng thuật toán **Watersed Segmentation** để phân đoạn ký tự.
-
+            - (1) Khử nhiễu ảnh bằng **Gaussian Blur** và chuyển ảnh về dạng ảnh xám.
+            - (2) Sử dụng **Otsu's Binarization** để chuyển đổi thành ảnh nhị phân.
+            - (3) Xác định **True Background** (vùng màu đen) bằng toán tử **Dilation**.
+            - (4) Xác định **Distance Transform**.
+            - (5) Xác định **True Foreground** dựa trên ngưỡng `thres` (vùng màu trắng) với công thức $D(i, j) \ge thres * max(D)$, trong đó:.
+                - $D(i, j)$ là giá trị của **Distance Transform** tại pixel $(i, j)$.
+                - $thres$ là ngưỡng.
+                - $max(D)$ là giá trị lớn nhất của **Distance Transform**.
+            - (6) Kết hợp **True Background** và **True Foreground** để tìm ra **vùng Unknow**.
+            - (7) Sử dụng thuật toán **Watersed Segmentation** để phân đoạn ký tự.
+            - (8) Sử dụng các tiêu chí như tỉ lệ chiều rộng và chiều cao để lọc ra ký tự.
             """
         )
 
@@ -224,7 +230,7 @@ def display_tranning_process():
             "Chọn kernel_size:", (3, 5, 7, 9), format_func=lambda x: f"{x} x {x}"
         )
         thres = cols[1].slider(
-            "Chọn thres:", min_value=0.0, max_value=1.0, step=1 / 500
+            "Chọn thres:", min_value=0.0, max_value=1.0, step=0.001, format="%.3f"
         )
 
         cols = st.columns(4)
