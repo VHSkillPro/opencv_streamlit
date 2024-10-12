@@ -75,7 +75,14 @@ class StudentService(Service):
         )
         return self.parse_data(docs)
 
-    def add(self, id: str, card: UploadedFile, selfie: UploadedFile) -> bool:
+    def add(
+        self,
+        id: str,
+        card: UploadedFile,
+        selfie: UploadedFile,
+        feature: np.ndarray,
+        feature2: np.ndarray,
+    ) -> bool:
         if id.strip() == "" or card is None or selfie is None:
             return
 
@@ -95,6 +102,8 @@ class StudentService(Service):
             "id": id,
             "card": card_path,
             "selfie": selfie_path,
+            "feature": feature.tolist(),
+            "feature2": feature2.tolist(),
         }
 
         return super().add("students", data)

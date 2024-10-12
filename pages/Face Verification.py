@@ -1,4 +1,5 @@
-import cv2
+from io import BytesIO
+import cv2, requests
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps
@@ -29,6 +30,15 @@ recognizer = SFace(
     targetId=target_id,
 )
 
+g_detector = YuNet(
+    modelPath=f"{__SERVICE_PATH__}/misc/face_detection_yunet_2023mar.onnx",
+    confThreshold=0.9,
+    nmsThreshold=0.3,
+    topK=5000,
+    backendId=backend_id,
+    targetId=target_id,
+)
+
 # ----------------------------------------------
 
 if "show_form_add" not in st.session_state:
@@ -40,9 +50,20 @@ if "show_form_filter" not in st.session_state:
 if "id" not in st.session_state:
     st.session_state["id"] = ""
 
+if ("face_features" not in st.session_state) or ("face_labels" not in st.session_state):
+    st.session_state["face_features"] = []
+    st.session_state["face_labels"] = []
+
+if "face_features_selfie" not in st.session_state:
+    st.session_state["face_features_selfie"] = []
+
 
 @st.cache_data(ttl="1h")
 def get_table_data(id: str):
+    st.session_state["face_features"] = []
+    st.session_state["face_labels"] = []
+    st.session_state["face_features_selfie"] = []
+
     students = studentService.find_like(id)
     table_data = {"checkbox": [], "id": [], "card": [], "selfie": []}
     for id, student in students.items():
@@ -52,6 +73,10 @@ def get_table_data(id: str):
         table_data["selfie"].append(
             studentService.get_url_from_storage(student["selfie"], 3600)
         )
+        st.session_state["face_features"].append(student["feature"])
+        st.session_state["face_features_selfie"].append(student["feature2"])
+        st.session_state["face_labels"].append(student["id"])
+
     return table_data
 
 
@@ -147,8 +172,10 @@ def display_manage_students():
                 st.markdown("#### Thêm sinh viên mới")
                 id = st.text_input("Mã sinh viên")
                 cols = st.columns(2)
-                card = cols[0].file_uploader("Thẻ sinh viên")
-                selfie = cols[1].file_uploader("Chân dung")
+                card = cols[0].file_uploader(
+                    "Thẻ sinh viên", type=["png", "jpg", "jpeg"]
+                )
+                selfie = cols[1].file_uploader("Chân dung", type=["png", "jpg", "jpeg"])
 
                 cols = st.columns([1, 1, 8])
                 btn_submit = cols[0].form_submit_button(
@@ -166,8 +193,32 @@ def display_manage_students():
                     if selfie is None:
                         st.error("Vui lòng chọn ảnh chân dung.")
 
-                    if id.strip() != "" and card is not None and selfie is not None:
-                        isCreated = studentService.add(id, card, selfie)
+                    _card = Image.open(BytesIO(card.getbuffer()))
+                    card_img = ImageOps.exif_transpose(_card)
+                    card_img = cv2.cvtColor(np.array(card_img), cv2.COLOR_RGB2BGR)
+                    g_detector.setInputSize([card_img.shape[1], card_img.shape[0]])
+                    faces = g_detector.infer(card_img)
+
+                    _selfie = Image.open(BytesIO(selfie.getbuffer()))
+                    selfie_img = ImageOps.exif_transpose(_selfie)
+                    selfie_img = cv2.cvtColor(np.array(selfie_img), cv2.COLOR_RGB2BGR)
+                    g_detector.setInputSize([selfie_img.shape[1], selfie_img.shape[0]])
+                    faces_selfie = g_detector.infer(selfie_img)
+
+                    if len(faces) == 0:
+                        st.error("Không tìm thấy khuôn mặt trên ảnh thẻ sinh viên.")
+                    elif len(faces) > 1:
+                        st.error("Tìm thấy nhiều khuôn mặt trên ảnh thẻ sinh viên.")
+                    elif len(faces_selfie) == 0:
+                        st.error("Không tìm thấy khuôn mặt trên ảnh chân dung.")
+                    elif len(faces_selfie) > 1:
+                        st.error("Tìm thấy nhiều khuôn mặt trên ảnh chân dung.")
+                    elif id.strip() != "" and card is not None and selfie is not None:
+                        feature = recognizer.infer(card_img, faces[0][:-1])
+                        feature2 = recognizer.infer(selfie_img, faces_selfie[0][:-1])
+                        isCreated = studentService.add(
+                            id, card, selfie, feature[0], feature2[0]
+                        )
                         if not isCreated:
                             st.warning("Mã sinh viên đã tồn tại.")
                         else:
@@ -204,8 +255,8 @@ def display_face_verification():
             "Chọn **confidence threshold** để phát hiện khuôn mặt", 0.0, 1.0, 0.9, 0.01
         )
         cols = st.columns(2)
-        card = cols[0].file_uploader("Thẻ sinh viên")
-        selfie = cols[1].file_uploader("Chân dung")
+        card = cols[0].file_uploader("Thẻ sinh viên", type=["png", "jpg", "jpeg"])
+        selfie = cols[1].file_uploader("Chân dung", type=["png", "jpg", "jpeg"])
         btn_submit = st.form_submit_button("Xác thực")
         st.caption(
             """
@@ -277,6 +328,106 @@ def display_face_verification():
                 )
 
 
+def display_face_recognize_in_class():
+    st.header("3. Ứng dụng nhận diện sinh viên trong lớp học")
+    with st.form("form_face_recognize"):
+        confThreshold = st.slider(
+            "Chọn **confidence threshold** để phát hiện khuôn mặt", 0.0, 1.0, 0.9, 0.01
+        )
+        image = st.file_uploader("Ảnh lớp học", type=["png", "jpg", "jpeg"])
+        btn_submit = st.form_submit_button("Nhận diện")
+        st.caption(
+            """
+            - Ảnh lớp học phải rõ ràng, không bị mờ.
+            - Đảm bảo kích thước khuôn mặt trên ảnh lớp học nằm trong khoảng $10$x$10$ đến $300$x$300$ pixels.
+            - Nếu không nhận diện được khuôn mặt, vui lòng nhấn **Làm mới** ở phần **1** để thử lại.
+            """
+        )
+
+    if btn_submit:
+        if image is None:
+            st.warning("Vui lòng chọn ảnh lớp học.")
+        else:
+            detector = YuNet(
+                modelPath=f"{__SERVICE_PATH__}/misc/face_detection_yunet_2023mar.onnx",
+                confThreshold=confThreshold,
+                nmsThreshold=0.3,
+                topK=5000,
+                backendId=backend_id,
+                targetId=target_id,
+            )
+
+            image = Image.open(image)
+            image = ImageOps.exif_transpose(image)
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            detector.setInputSize([image.shape[1], image.shape[0]])
+            faces = detector.infer(image)
+            if len(faces) == 0:
+                st.warning(
+                    "Không tìm thấy khuôn mặt trên ảnh lớp học. Vui lòng chọn ảnh khác hoặc điều chỉnh **confidence threshold**."
+                )
+            else:
+                cols = st.columns([9, 1])
+
+                _image = image.copy()
+                target_features = []
+                for face in faces:
+                    target_features.append(recognizer.infer(image, face[:-1]))
+
+                for studentId, feature, feature2 in zip(
+                    st.session_state["face_labels"],
+                    st.session_state["face_features"],
+                    st.session_state["face_features_selfie"],
+                ):
+                    max_score, label, id_face = 0, "Unknown", -1
+                    for id, target_feature in zip(range(len(faces)), target_features):
+                        score, match = recognizer.match_feature(
+                            np.array([feature], dtype=np.float32), target_feature
+                        )
+                        if (match == 1) and (score > max_score):
+                            max_score, label, id_face = score, studentId, id
+
+                    for id, target_feature in zip(range(len(faces)), target_features):
+                        score, match = recognizer.match_feature(
+                            np.array([feature2], dtype=np.float32), target_feature
+                        )
+                        if (match == 1) and (score > max_score):
+                            max_score, label, id_face = score, studentId, id
+
+                    if id_face != -1:
+                        x, y, w, h = map(int, faces[id_face][0:4])
+                        cv2.putText(
+                            _image,
+                            label,
+                            (x, y - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 255, 0) if label != "Unknown" else (0, 0, 255),
+                            2,
+                        )
+                        cv2.rectangle(
+                            _image,
+                            (x, y),
+                            (x + w, y + h),
+                            (0, 255, 0) if label != "Unknown" else (0, 0, 255),
+                            2,
+                        )
+
+                        cols[1].image(
+                            image[y : y + h, x : x + w],
+                            caption=label,
+                            use_column_width=True,
+                            channels="BGR",
+                        )
+
+                cols[0].image(
+                    _image,
+                    caption="Ảnh lớp học",
+                    use_column_width=True,
+                    channels="BGR",
+                )
+
+
 # ----------------------------------------------
 
 st.set_page_config(
@@ -289,3 +440,4 @@ st.set_page_config(
 st.title("Ứng dụng xác thực khuôn mặt")
 display_manage_students()
 display_face_verification()
+display_face_recognize_in_class()

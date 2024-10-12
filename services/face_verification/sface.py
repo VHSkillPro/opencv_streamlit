@@ -7,6 +7,7 @@
 import numpy as np
 import cv2 as cv
 
+
 class SFace:
     def __init__(self, modelPath, disType=0, backendId=0, targetId=0):
         self._modelPath = modelPath
@@ -16,10 +17,14 @@ class SFace:
             model=self._modelPath,
             config="",
             backend_id=self._backendId,
-            target_id=self._targetId)
+            target_id=self._targetId,
+        )
 
-        self._disType = disType # 0: cosine similarity, 1: Norm-L2 distance
-        assert self._disType in [0, 1], "0: Cosine similarity, 1: norm-L2 distance, others: invalid"
+        self._disType = disType  # 0: cosine similarity, 1: Norm-L2 distance
+        assert self._disType in [
+            0,
+            1,
+        ], "0: Cosine similarity, 1: norm-L2 distance, others: invalid"
 
         self._threshold_cosine = 0.363
         self._threshold_norml2 = 1.128
@@ -35,7 +40,8 @@ class SFace:
             model=self._modelPath,
             config="",
             backend_id=self._backendId,
-            target_id=self._targetId)
+            target_id=self._targetId,
+        )
 
     def _preprocess(self, image, bbox):
         if bbox is None:
@@ -51,13 +57,25 @@ class SFace:
         features = self._model.feature(inputBlob)
         return features
 
+    def match_feature(self, feature1, feature2):
+        if self._disType == 0:  # COSINE
+            cosine_score = self._model.match(feature1, feature2, self._disType)
+            return cosine_score, 1 if cosine_score >= self._threshold_cosine else 0
+        else:  # NORM_L2
+            norml2_distance = self._model.match(feature1, feature2, self._disType)
+            return norml2_distance, (
+                1 if norml2_distance <= self._threshold_norml2 else 0
+            )
+
     def match(self, image1, face1, image2, face2):
         feature1 = self.infer(image1, face1)
         feature2 = self.infer(image2, face2)
 
-        if self._disType == 0: # COSINE
+        if self._disType == 0:  # COSINE
             cosine_score = self._model.match(feature1, feature2, self._disType)
             return cosine_score, 1 if cosine_score >= self._threshold_cosine else 0
-        else: # NORM_L2
+        else:  # NORM_L2
             norml2_distance = self._model.match(feature1, feature2, self._disType)
-            return norml2_distance, 1 if norml2_distance <= self._threshold_norml2 else 0
+            return norml2_distance, (
+                1 if norml2_distance <= self._threshold_norml2 else 0
+            )
