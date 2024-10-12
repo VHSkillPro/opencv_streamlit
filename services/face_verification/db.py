@@ -55,6 +55,17 @@ class StudentService(Service):
         result = super().get_all("students")
         return result
 
+    def find_like(self, id: str):
+        print(datetime.datetime.now(), ">> Find student like id", id)
+        datas = self.get_all()
+
+        result = {}
+        for key, data in datas.items():
+            if id.lower() in data["id"].lower():
+                result[key] = data
+
+        return result
+
     def find_by(self, id: str):
         print(datetime.datetime.now(), ">> Find student by id", id)
         docs = (

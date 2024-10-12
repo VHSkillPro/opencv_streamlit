@@ -31,16 +31,19 @@ recognizer = SFace(
 
 # ----------------------------------------------
 
-if "submit_form" not in st.session_state:
-    st.session_state["submit_form"] = False
-
 if "show_form_add" not in st.session_state:
     st.session_state["show_form_add"] = False
 
+if "show_form_filter" not in st.session_state:
+    st.session_state["show_form_filter"] = False
+
+if "id" not in st.session_state:
+    st.session_state["id"] = ""
+
 
 @st.cache_data(ttl="1h")
-def get_table_data():
-    students = studentService.get_all()
+def get_table_data(id: str):
+    students = studentService.find_like(id)
     table_data = {"checkbox": [], "id": [], "card": [], "selfie": []}
     for id, student in students.items():
         table_data["checkbox"].append(False)
@@ -52,8 +55,8 @@ def get_table_data():
     return table_data
 
 
-def display_table_students():
-    table_data = get_table_data()
+def display_table_students(id: str):
+    table_data = get_table_data(id)
     if len(table_data["id"]) == 0:
         st.write("Không có sinh viên nào.")
         return pd.DataFrame(table_data)
@@ -71,26 +74,43 @@ def display_table_students():
     )
 
 
+@st.fragment
 def display_manage_students():
     def show_form_add():
         st.session_state["show_form_add"] = True
-        st.session_state["submit_form"] = False
+        st.session_state["show_form_filter"] = False
 
     def hide_form_add():
         st.session_state["show_form_add"] = False
-        st.session_state["submit_form"] = False
+
+    def show_form_filter():
+        st.session_state["show_form_filter"] = True
+        st.session_state["show_form_add"] = False
+
+    def hide_form_filter():
+        st.session_state["show_form_filter"] = False
 
     st.header("1. Danh sách sinh viên")
     container_action = st.container()
     container_form_add = st.container()
-    data_editor = display_table_students()
+    container_form_filter = st.container()
+    data_editor = display_table_students(st.session_state["id"])
     st.caption("- Click đúp vào ô ảnh cần xem để phóng to ảnh.")
 
     with container_action:
-        cols = st.columns([1, 1, 8])
+        cols = st.columns([1, 1, 1, 1, 6])
         with cols[0]:
             st.button("Thêm", use_container_width=True, on_click=show_form_add)
         with cols[1]:
+            st.button("Tìm kiếm", use_container_width=True, on_click=show_form_filter)
+        with cols[2]:
+
+            def handle_refresh():
+                st.session_state["id"] = ""
+                get_table_data.clear()
+
+            st.button("Làm mới", use_container_width=True, on_click=handle_refresh)
+        with cols[3]:
 
             @st.dialog("Bạn có chắc chắn muốn xóa sinh viên đã chọn không?")
             def handle_remove_students():
@@ -108,12 +128,13 @@ def display_manage_students():
                             )
                         else:
                             st.toast(
-                                f"Xóa sinh viên {id} thất bại", icon=":material/close:"
+                                f"Xóa sinh viên {id} thất bại",
+                                icon=":material/close:",
                             )
 
                     if haveChanges:
-                        st.cache_data.clear()
-                        st.rerun()
+                        get_table_data.clear()
+                        st.rerun(scope="fragment")
 
             if (data_editor["checkbox"] == True).sum() > 0:
                 st.button(
@@ -125,35 +146,9 @@ def display_manage_students():
             with st.form("form_add"):
                 st.markdown("#### Thêm sinh viên mới")
                 id = st.text_input("Mã sinh viên")
-                container_error_id = st.container()
-                with container_error_id:
-                    if st.session_state["submit_form"] and id.strip() == "":
-                        st.caption(":red[Mã sinh viên không được để trống]")
-
                 cols = st.columns(2)
-                with cols[0]:
-                    card = st.file_uploader("Thẻ sinh viên")
-                    if st.session_state["submit_form"] and card is None:
-                        st.caption(":red[Ảnh thẻ sinh viên không được để trống]")
-
-                with cols[1]:
-                    selfie = st.file_uploader("Chân dung")
-                    if st.session_state["submit_form"] and selfie is None:
-                        st.caption(":red[Ảnh chân dung không được để trống]")
-
-                def handle_add():
-                    st.session_state["submit_form"] = True
-                    if id.strip() == "" or card is None or selfie is None:
-                        return
-
-                    isCreated = studentService.add(id, card, selfie)
-                    if not isCreated:
-                        container_error_id.caption(":red[Mã sinh viên đã tồn tại]")
-
-                    st.cache_data.clear()
-                    hide_form_add()
-                    st.toast("Thêm sinh viên thành công", icon=":material/check:")
-                    st.rerun()
+                card = cols[0].file_uploader("Thẻ sinh viên")
+                selfie = cols[1].file_uploader("Chân dung")
 
                 cols = st.columns([1, 1, 8])
                 btn_submit = cols[0].form_submit_button(
@@ -164,7 +159,42 @@ def display_manage_students():
                 )
 
                 if btn_submit:
-                    handle_add()
+                    if id.strip() == "":
+                        st.error("Mã sinh viên không được để trống.")
+                    if card is None:
+                        st.error("Vui lòng chọn ảnh thẻ sinh viên.")
+                    if selfie is None:
+                        st.error("Vui lòng chọn ảnh chân dung.")
+
+                    if id.strip() != "" and card is not None and selfie is not None:
+                        isCreated = studentService.add(id, card, selfie)
+                        if not isCreated:
+                            st.warning("Mã sinh viên đã tồn tại.")
+                        else:
+                            get_table_data.clear()
+                            hide_form_add()
+                            st.toast(
+                                "Thêm sinh viên thành công", icon=":material/check:"
+                            )
+                            st.rerun(scope="fragment")
+
+    if st.session_state["show_form_filter"]:
+        with container_form_filter:
+            with st.form("form_filter"):
+                st.markdown("#### Tìm kiếm sinh viên")
+                id = st.text_input("Mã sinh viên")
+                cols = st.columns([1, 1, 8])
+                btn_submit = cols[0].form_submit_button(
+                    "Tìm kiếm", use_container_width=True
+                )
+                cols[1].form_submit_button(
+                    "Hủy", on_click=hide_form_filter, use_container_width=True
+                )
+
+                if btn_submit:
+                    get_table_data.clear()
+                    st.session_state["id"] = id
+                    st.rerun(scope="fragment")
 
 
 def display_face_verification():
