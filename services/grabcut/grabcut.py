@@ -2,10 +2,8 @@ import cv2
 import numpy as np
 
 
-def grabcut(original_image: cv2.typing.MatLike, rect: cv2.typing.Rect):
+def grabcut(original_image: np.ndarray, rect: np.ndarray, mask: np.ndarray, mode: int):
     number_of_iterations = 5
-    height, width, _ = np.shape(original_image)
-    mask = np.zeros((height, width), np.uint8)
     background_model = np.zeros((1, 65), np.float64)
     foreground_model = np.zeros((1, 65), np.float64)
 
@@ -16,7 +14,7 @@ def grabcut(original_image: cv2.typing.MatLike, rect: cv2.typing.Rect):
         bgdModel=background_model,
         fgdModel=foreground_model,
         iterCount=number_of_iterations,
-        mode=cv2.GC_INIT_WITH_RECT,
+        mode=mode,
     )
 
     grabcut_mask = np.where(
@@ -24,4 +22,4 @@ def grabcut(original_image: cv2.typing.MatLike, rect: cv2.typing.Rect):
     ).astype("uint8")
     segmented_image = original_image.copy() * grabcut_mask[:, :, np.newaxis]
 
-    return segmented_image
+    return (segmented_image, final_mask)

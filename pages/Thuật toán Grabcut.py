@@ -1,9 +1,15 @@
-import cv2
-import numpy as np
 from PIL import Image
 import streamlit as st
-from services.grabcut.grabcut import grabcut
-from streamlit_drawable_canvas import st_canvas
+from components.grabcut import (
+    display_form_draw,
+    display_guide,
+    display_st_canvas,
+    init_session_state,
+    process_grabcut,
+)
+from services.grabcut.ultis import get_object_from_st_canvas
+
+init_session_state()
 
 st.set_page_config(
     page_title="Ứng dụng thuật toán GrabCut",
@@ -11,57 +17,49 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 st.title("Ứng dụng thuật toán GrabCut")
-uploaded_image = st.file_uploader(
-    "Chọn hoặc kéo ảnh vào ô bên dưới", type=["jpg", "jpeg", "png"]
-)
+
+with st.container(border=True):
+    display_guide()
+
+with st.container(border=True):
+    uploaded_image = st.file_uploader(
+        ":material/image: Chọn hoặc kéo ảnh vào ô bên dưới", type=["jpg", "jpeg", "png"]
+    )
 
 if uploaded_image is not None:
-    st.write(":pencil: **Chọn vùng cần tách nền bằng cách kéo thả chuột trong ảnh**")
-    st.write(":pencil: **Sau đó nhấn vào nút `Tách nền`**")
-    submitBtn = st.button("Tách nền")
+    with st.container(border=True):
+        drawing_mode, stroke_width = display_form_draw()
 
-    cols = st.columns(2, gap="large")
-    raw_image = Image.open(uploaded_image)
+    with st.container(border=True):
+        cols = st.columns(2, gap="large")
+        raw_image = Image.open(uploaded_image)
 
-    with cols[0]:
-        w, h = raw_image.size
-        width = min(w, 475)
-        height = width * h // w
+        with cols[0]:
+            canvas_result = display_st_canvas(raw_image, drawing_mode, stroke_width)
+            rects, true_fgs, true_bgs = get_object_from_st_canvas(canvas_result)
 
-        canvas_result = st_canvas(
-            background_image=raw_image,
-            drawing_mode="rect",
-            fill_color="rgba(255, 165, 0, 0.1)",
-            stroke_width=1,
-            width=width,
-            height=height,
-        )
-
-    if canvas_result.json_data is not None and submitBtn:
-        if len(canvas_result.json_data.get("objects")) > 1:
-            st.error("Chỉ được chọn một vùng cần tách nền")
-        elif len(canvas_result.json_data.get("objects")) < 1:
-            st.error("Vui lòng chọn một vùng cần tách nền")
-        elif len(canvas_result.json_data.get("objects")) == 1:
-            with st.spinner("Đang xử lý..."):
-                orginal_image = np.array(raw_image)
-                orginal_image = cv2.cvtColor(orginal_image, cv2.COLOR_RGBA2BGR)
-                scale = orginal_image.shape[1] / width
-
-                min_x = canvas_result.json_data.get("objects")[0]["left"]
-                min_y = canvas_result.json_data.get("objects")[0]["top"]
-                width = canvas_result.json_data.get("objects")[0]["width"]
-                height = canvas_result.json_data.get("objects")[0]["height"]
-
-                res = grabcut(
-                    original_image=orginal_image,
-                    rect=(
-                        int(min_x * scale),
-                        int(min_y * scale),
-                        int(width * scale),
-                        int(height * scale),
-                    ),
+        if len(rects) < 1:
+            st.session_state["result_grabcut"] = None
+            st.session_state["final_mask"] = None
+        elif len(rects) > 1:
+            st.warning("Chỉ được chọn một vùng cần tách nền")
+        else:
+            with cols[0]:
+                submit_btn = st.button(
+                    ":material/settings_timelapse: Tách nền",
                 )
 
-                cols[1].image(res, channels="BGR", caption="Ảnh kết quả")
+            if submit_btn:
+                with st.spinner("Đang xử lý..."):
+                    result = process_grabcut(
+                        raw_image, canvas_result, rects, true_fgs, true_bgs
+                    )
+                    cols[1].image(result, channels="BGR", caption="Ảnh kết quả")
+            elif st.session_state["result_grabcut"] is not None:
+                cols[1].image(
+                    st.session_state["result_grabcut"],
+                    channels="BGR",
+                    caption="Ảnh kết quả",
+                )
