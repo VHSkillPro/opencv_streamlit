@@ -122,7 +122,7 @@ def display_tranning_process():
             - (4) Xác định **Distance Transform**.
             - (5) Xác định **True Foreground** dựa trên ngưỡng `thres` (vùng màu trắng) với công thức $D(i, j) > thres * max(D)$, trong đó:
                 - $D(i, j)$ là giá trị của **Distance Transform** tại pixel $(i, j)$.
-                - $thres$ là ngưỡng.
+                - $thres$ là tỷ lệ chọn **Sure Foreground**.
                 - $max(D)$ là giá trị lớn nhất của **Distance Transform**.
             - (6) Kết hợp **True Background** và **True Foreground** để tìm ra **vùng Unknow**.
             - (7) Sử dụng thuật toán **Watersed Segmentation** để phân đoạn ký tự.
@@ -372,13 +372,13 @@ def display_result():
 # ----------------------------------------------------------
 
 st.set_page_config(
-    page_title="Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự",
+    page_title="Phân đoạn ký tự bằng Watershed Segmentation",
     page_icon=Image.open("./public/images/logo.png"),
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.title("Ứng dụng Watershed Segmentation cho bài toán phân đoạn ký tự")
+st.title("Phân đoạn ký tự bằng Watershed Segmentation")
 
 display_datasets()
 display_tranning_process()
