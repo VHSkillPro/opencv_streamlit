@@ -132,10 +132,11 @@ def display_training():
     st.subheader("2.2. Quá trình huấn luyện KNN")
     st.markdown(
         """
+        - Kích thước feature vector = Số lượng features = $16$.
         - Sử dụng model **kNN** của thư viện **sklearn** để huấn luyện với các tham số như sau:
             - Tham số **k**: $10$ - $200$ với bước nhảy là $10$.
-            - Tham số weights: **distance**.
-        - Độ đo đuợc sử dụng để đánh giá mô hình là **IoU**.
+            - Tham số weights: **distance** (Trọng số của các điểm bằng nghịch đảo khoảng cách của chúng. Trong trường hợp này, những điểm hàng xóm gần điểm truy vấn hơn sẽ có ảnh hưởng lớn hơn những điểm hàng xóm ở xa hơn).
+        - Độ đo được sử dụng để đánh giá mô hình là **IoU**.
         """
     )
     st.columns(3)[1].image(
