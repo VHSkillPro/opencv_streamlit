@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("Ứng dụng thuật toán GrabCut")
+st.title("Ứng dụng tách nền bằng thuật toán GrabCut")
 
 with st.container(border=True):
     display_guide()
