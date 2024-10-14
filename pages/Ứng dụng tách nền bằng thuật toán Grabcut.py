@@ -12,7 +12,7 @@ from services.grabcut.ultis import get_object_from_st_canvas
 init_session_state()
 
 st.set_page_config(
-    page_title="Ứng dụng thuật toán GrabCut",
+    page_title="Ứng dụng tách nền bằng thuật toán GrabCut",
     page_icon=Image.open("./public/images/logo.png"),
     layout="wide",
     initial_sidebar_state="expanded",
