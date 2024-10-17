@@ -26,7 +26,7 @@ class SFace:
             1,
         ], "0: Cosine similarity, 1: norm-L2 distance, others: invalid"
 
-        self._threshold_cosine = 0.363
+        self._threshold_cosine = 0.383
         self._threshold_norml2 = 1.128
 
     @property

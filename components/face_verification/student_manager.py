@@ -18,6 +18,7 @@ def hidden_all_forms():
 @st.cache_data(ttl="1h")
 def get_table_data(filter: object):
     st.session_state["face_labels"] = []
+    st.session_state["face_names"] = []
     st.session_state["card_face_features"] = []
 
     students = studentService.find(filter)
@@ -29,6 +30,7 @@ def get_table_data(filter: object):
         table_data["card"].append(studentService.storage.get_url(student["card"], 3600))
 
         st.session_state["face_labels"].append(student["id"])
+        st.session_state["face_names"].append(student["name"])
         st.session_state["card_face_features"].append(student["card_face_feature"])
 
     return table_data
