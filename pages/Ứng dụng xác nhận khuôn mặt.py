@@ -447,6 +447,7 @@ import streamlit as st
 from PIL import Image
 
 from components.face_verification import init_session_state
+from components.face_verification.face_verification import display_face_verification
 from components.face_verification.student_manager import display_student_manager
 
 init_session_state()
@@ -469,3 +470,4 @@ st.header(":material/manage_accounts: Quản lý sinh viên")
 display_student_manager()
 
 st.header(":material/face: Xác thực khuôn mặt trong ảnh chân dung và thẻ sinh viên")
+display_face_verification()
