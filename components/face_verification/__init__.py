@@ -11,8 +11,10 @@ def init_session_state():
         st.session_state["face_labels"] = []
     if "card_face_features" not in st.session_state:
         st.session_state["card_face_features"] = []
-    if "selfie_face_features" not in st.session_state:
-        st.session_state["selfie_face_features"] = []
+    if "selected_students" not in st.session_state:
+        st.session_state["selected_students"] = []
+    if "toasts" not in st.session_state:
+        st.session_state["toasts"] = []
 
     forms_id = ["form_add_student", "form_edit_student", "form_search_student"]
     for id in forms_id:

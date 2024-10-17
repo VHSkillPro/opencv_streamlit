@@ -37,15 +37,21 @@ class Repository(Database):
         return new_doc_ref
 
     def update(self, id, docs):
-        print(datetime.datetime.now(), f">> UPDATE {self.collection} {id} >>", docs)
+        print(datetime.datetime.now(), f">> UPDATE {self.collection} {id} >>")
         try:
             return self.db.collection(self.collection).document(id).update(docs)
         except Exception as e:
+            print(e)
             return False
 
     def delete(self, id):
         print(datetime.datetime.now(), f">> DELETE {self.collection} {id}")
-        self.db.collection(self.collection).document(id).delete()
+        try:
+            self.db.collection(self.collection).document(id).delete()
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
 
 class Storage(Database):

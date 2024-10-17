@@ -458,6 +458,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+if len(st.session_state["toasts"]) > 0:
+    for toast in st.session_state["toasts"]:
+        st.toast(toast["body"], icon=toast["icon"])
+    st.session_state["toasts"] = []
+
 st.title("Ứng dụng xác nhận khuôn mặt")
 
 st.header(":material/manage_accounts: Quản lý sinh viên")
