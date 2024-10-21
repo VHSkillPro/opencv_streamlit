@@ -51,14 +51,13 @@ def get_pr(points: np.ndarray, pred_points: np.ndarray):
     return tp / (tp + fp), tp / (tp + fn)
 
 
-@st.cache_data()
-def get_average_pr_of_type_shape(i: int):
+def get_pr_of_type_shape(i: int, model):
     prs = []
     for j in range(500):
         points = np.load(os.path.join(DATATYPES[i], "points", f"{j}.npy"))
         image = cv2.imread(os.path.join(DATATYPES[i], "images", f"{j}.png"))
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        keypoints = orb.detect(gray, None)
+        keypoints = model.detect(gray, None)
         pred_points = np.array([[kp.pt[1], kp.pt[0]] for kp in keypoints])
         prs.append(get_pr(points, pred_points))
-    return np.mean(prs, axis=0)
+    return prs
