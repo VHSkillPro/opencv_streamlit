@@ -1,7 +1,8 @@
-import cv2
+import cv2, re
 import numpy as np
 from io import BytesIO
 from PIL import Image, ImageOps
+from services.face_verification.ultis import remove_vietnamese_accent
 from services.face_verification.yunet import YuNet
 from services.face_verification.sface import SFace
 from services.face_verification.db import Repository, Storage
@@ -20,7 +21,17 @@ class StudentService:
             "./services/face_verification/models/face_recognition_sface_2021dec.onnx"
         )
 
-    def __detect_faces(self, img: np.ndarray, scale_factor: float = 1.1):
+    def detect_single_face_multiscale(self, img: np.ndarray, scale_factor: float = 1.1):
+        """
+        Detect single face on image with multi-scale
+
+        ### Arguments:
+            img - Image to detect face
+            scale_factor - Scale factor to resize image
+
+        ### Returns:
+            Detected single face
+        """
         org_h, org_w = img.shape[:2]
 
         scale = 1.0
@@ -40,93 +51,189 @@ class StudentService:
 
         return ([], 1.0)
 
-    def find(self, filter: object):
+    def find(self, student_id: str = "", student_name: str = ""):
+        """
+        Find students by student_id and student_name
+
+        ### Arguments:
+            student_id - Student id to find
+            student_name - Student name to find
+
+        ### Returns:
+            List of filtered students
+        """
+        # Get all students
         students = self.repository.index()
+
+        # Remove Vietnamese accent
+        student_id = remove_vietnamese_accent(student_id)
+        student_name = remove_vietnamese_accent(student_name)
 
         filtered_students = {}
         for key, data in students.items():
-            is_match_id = (filter["id"] == "") or (
-                filter["id"].lower() in data["id"].lower()
-            )
-            is_match_name = (filter["name"] == "") or (
-                filter["name"].lower() in data["name"].lower()
-            )
-            if is_match_id and is_match_name:
+            is_match = True
+            id = remove_vietnamese_accent(data["id"])
+            name = remove_vietnamese_accent(data["name"])
+
+            # Check if student id match
+            if not re.search(student_id, id, re.IGNORECASE):
+                is_match = False
+
+            # Check if student name match
+            if not re.search(student_name, name, re.IGNORECASE):
+                is_match = False
+
+            # Add to filtered students
+            if is_match:
                 filtered_students[key] = data
 
         return filtered_students
 
-    def find_by_id(self, id: str):
-        students = (
-            self.repository.db.collection("students").where("id", "==", id).stream()
-        )
+    def find_by_student_id(self, student_id: str):
+        """
+        Find student by student_id
+
+        ### Arguments:
+            student_id - Student id to find
+
+        ### Returns:
+            Student if found, `None` otherwise
+        """
+        collections = self.repository.db.collection("students")
+        students = collections.where("id", "==", student_id).stream()
+
         result = {}
         for student in students:
             result[student.id] = student.to_dict()
             return result
+
         return None
 
-    def insert(self, id: str, name: str, card: UploadedFile) -> str:
+    def insert(
+        self, student_id: str, name: str, card: UploadedFile, selfie: UploadedFile
+    ) -> str:
+        """
+        Insert new student to database
+
+        ### Arguments:
+            student_id - Student id
+            name - Student name
+            card - Student card image
+            selfie - Student selfie image
+
+        ### Returns:
+            Message after insert student
+        """
+
         # Check student exists
-        student = self.find_by_id(id)
+        student = self.find_by_student_id(student_id)
         if student is not None:
             return "Sinh viên đã tồn tại"
 
+        # Convert uploaded file to image
         _card = Image.open(BytesIO(card.getbuffer()))
         card_img = ImageOps.exif_transpose(_card)
         card_img = cv2.cvtColor(np.array(card_img), cv2.COLOR_RGB2BGR)
 
-        # Detect face on card
-        card_face, card_scale = self.__detect_faces(card_img)
+        _selfie = Image.open(BytesIO(selfie.getbuffer()))
+        selfie_img = ImageOps.exif_transpose(_selfie)
+        selfie_img = cv2.cvtColor(np.array(selfie_img), cv2.COLOR_RGB2BGR)
+
+        # Detect single face on card
+        card_face, card_scale = self.detect_single_face_multiscale(card_img)
         if len(card_face) == 0:
             return "Không tìm thấy khuôn mặt trên ảnh thẻ sinh viên"
         if len(card_face) > 1:
             return "Tìm thấy nhiều khuôn mặt trên ảnh thẻ sinh viên"
+
+        # Detect single face on selfie
+        selfie_face, selfie_scale = self.detect_single_face_multiscale(selfie_img)
+        if len(selfie_face) == 0:
+            return "Không tìm thấy khuôn mặt trên ảnh chân dung"
+        if len(selfie_face) > 1:
+            return "Tìm thấy nhiều khuôn mặt trên ảnh chân dung"
 
         # Resize images
         resized_card = cv2.resize(
             card_img.copy(),
             (int(card_img.shape[1] * card_scale), int(card_img.shape[0] * card_scale)),
         )
-
-        # Save images to storage
-        self.storage.upload(f"TheSV/{id}_card.jpg", card)
+        resized_selfie = cv2.resize(
+            selfie_img.copy(),
+            (
+                int(selfie_img.shape[1] * selfie_scale),
+                int(selfie_img.shape[0] * selfie_scale),
+            ),
+        )
 
         # Extract features
         card_feature = self.embedder.infer(resized_card, card_face[0][:-1])
+        selfie_feature = self.embedder.infer(resized_selfie, selfie_face[0][:-1])
 
+        # Check if card and selfie are the same person
+        _, match = self.embedder.match_feature(card_feature, selfie_feature)
+        if match == 0:
+            return "Ảnh thẻ sinh viên và ảnh chân dung không cùng một người"
+
+        # Save images to storage
+        self.storage.upload(f"TheSV/{student_id}_card.jpg", card)
+        self.storage.upload(f"ChanDung/{student_id}_selfie.jpg", selfie)
+
+        # Insert student to database
         docs = {
-            "id": id,
+            "id": student_id,
             "name": name,
-            "card": f"TheSV/{id}_card.jpg",
-            "selfie": f"ChanDung/{id}_selfie.jpg",
+            "card": f"TheSV/{student_id}_card.jpg",
+            "selfie": f"ChanDung/{student_id}_selfie.jpg",
             "card_face_feature": card_feature[0].tolist(),
+            "selfie_face_feature": selfie_feature[0].tolist(),
         }
 
         self.repository.insert(docs)
         return "Thêm sinh viên thành công"
 
-    def update(self, id, name, card):
-        student = self.find_by_id(id)
-        if student is None:
-            return "Sinh viên không tồn tại"
+    def update(
+        self,
+        student_id: str,
+        name: str,
+        card: UploadedFile | None,
+        selfie: UploadedFile | None,
+    ) -> str:
+        """
+        Update student by student_id
 
+        ### Arguments:
+            student_id - Student id to update
+            name - Student name
+            card - Student card image
+            selfie - Student selfie image
+
+        ### Returns:
+            Message after update student
+        """
+
+        # Check student exists
+        student = self.find_by_student_id(student_id)
+        if student is None:
+            return f"Sinh viên {student_id} không tồn tại"
+
+        # Get student key and data
         key = list(student.keys())[0]
         student = list(student.values())[0]
 
+        # Convert uploaded file to image and detect face in card image
+        card_img, card_feature = None, None
         if card is not None:
             _card = Image.open(BytesIO(card.getbuffer()))
             card_img = ImageOps.exif_transpose(_card)
             card_img = cv2.cvtColor(np.array(card_img), cv2.COLOR_RGB2BGR)
 
-            # Detect face on card
-            card_face, card_scale = self.__detect_faces(card_img)
+            card_face, card_scale = self.detect_single_face_multiscale(card_img)
             if len(card_face) == 0:
                 return "Không tìm thấy khuôn mặt trên ảnh thẻ sinh viên"
             if len(card_face) > 1:
                 return "Tìm thấy nhiều khuôn mặt trên ảnh thẻ sinh viên"
 
-            # Resize images
             resized_card = cv2.resize(
                 card_img.copy(),
                 (
@@ -135,27 +242,101 @@ class StudentService:
                 ),
             )
 
-            # Save images to storage
-            self.storage.upload(f"TheSV/{id}_card.jpg", card)
-
-            # Extract features
             card_feature = self.embedder.infer(resized_card, card_face[0][:-1])
+            card_feature = np.array(card_feature)
 
-            student["card"] = f"TheSV/{id}_card.jpg"
+        # Convert uploaded file to image and detect face in selfie image
+        selfie_img, selfie_feature = None, None
+        if selfie is not None:
+            _selfie = Image.open(BytesIO(selfie.getbuffer()))
+            selfie_img = ImageOps.exif_transpose(_selfie)
+            selfie_img = cv2.cvtColor(np.array(selfie_img), cv2.COLOR_RGB2BGR)
+
+            selfie_face, selfie_scale = self.detect_single_face_multiscale(selfie_img)
+            if len(selfie_face) == 0:
+                return "Không tìm thấy khuôn mặt trên ảnh thẻ sinh viên"
+            if len(selfie_face) > 1:
+                return "Tìm thấy nhiều khuôn mặt trên ảnh thẻ sinh viên"
+
+            resized_selfie = cv2.resize(
+                selfie_img.copy(),
+                (
+                    int(selfie_img.shape[1] * selfie_scale),
+                    int(selfie_img.shape[0] * selfie_scale),
+                ),
+            )
+
+            selfie_feature = self.embedder.infer(resized_selfie, selfie_face[0][:-1])
+            selfie_feature = np.array(selfie_feature)
+
+        # If update both card and selfie
+        if (card is not None) and (selfie is not None):
+            _, match = self.embedder.match_feature(card_feature, selfie_feature)
+            if match == 0:
+                return "Ảnh thẻ sinh viên và ảnh chân dung không cùng một người"
+
+            self.storage.upload(f"TheSV/{student_id}_card.jpg", card)
+            self.storage.upload(f"ChanDung/{student_id}_selfie.jpg", selfie)
+
+            student["card"] = f"TheSV/{student_id}_card.jpg"
+            student["selfie"] = f"ChanDung/{student_id}_selfie.jpg"
             student["card_face_feature"] = card_feature[0].tolist()
+            student["selfie_face_feature"] = selfie_feature[0].tolist()
+
+        # If update only card
+        elif card is not None:
+            _, match = self.embedder.match_feature(
+                card_feature,
+                np.array(
+                    [student["selfie_face_feature"]],
+                    dtype=np.dtype(card_feature[0][0]),
+                ),
+            )
+            if match == 0:
+                return "Ảnh thẻ sinh viên và ảnh chân dung không cùng một người"
+
+            self.storage.upload(f"TheSV/{student_id}_card.jpg", card)
+            student["card"] = f"TheSV/{student_id}_card.jpg"
+            student["card_face_feature"] = card_feature[0].tolist()
+
+        # If update only selfie
+        elif selfie is not None:
+            _, match = self.embedder.match_feature(
+                np.array(
+                    [student["card_face_feature"]],
+                    dtype=np.dtype(selfie_feature[0][0]),
+                ),
+                selfie_feature,
+            )
+            if match == 0:
+                return "Ảnh thẻ sinh viên và ảnh chân dung không cùng một người"
+
+            self.storage.upload(f"ChanDung/{student_id}_selfie.jpg", selfie)
+            student["selfie"] = f"ChanDung/{student_id}_selfie.jpg"
+            student["selfie_face_feature"] = selfie_feature[0].tolist()
 
         student["name"] = name
         if self.repository.update(key, student):
             return "Cập nhật sinh viên thành công"
         return "Cập nhật sinh viên thất bại"
 
-    def delete(self, id):
-        student = self.find_by_id(id)
+    def delete(self, student_id: str) -> str:
+        """
+        Delete student by student_id
+
+        ### Arguments:
+            student_id - Student id to delete
+
+        ### Returns:
+            Message after delete student
+        """
+
+        student = self.find_by_student_id(student_id)
         if student is None:
-            return f"Sinh viên {id} không tồn tại"
+            return f"Sinh viên {student_id} không tồn tại"
 
         key = list(student.keys())[0]
 
         if self.repository.delete(key):
-            return f"Xóa sinh viên {id} thành công"
-        return f"Xóa sinh viên {id} thất bại"
+            return f"Xóa sinh viên {student_id} thành công"
+        return f"Xóa sinh viên {student_id} thất bại"
