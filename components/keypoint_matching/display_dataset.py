@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import pandas as pd
@@ -50,10 +51,23 @@ def display_dataset():
         stack=False,
     )
 
-    st.markdown(
-        f"""
-        - Số lượng ảnh phát hiện toàn bộ keypoint bằng **SIFT**: ${sum(data_df['SIFT'])}$.
-        - Số lượng ảnh phát hiện toàn bộ keypoint bằng **ORB**: ${sum(data_df['ORB'])}$.
-        - Số lượng ảnh phát hiện toàn bộ keypoint bằng cả **SIFT** và **ORB**: ${sum(data_df['SIFT & ORB'])}$.
-        """
+    st.write("- Tổng số lượng ảnh phát hiện toàn bộ keypoint:")
+    st.bar_chart(
+        {
+            "SIFT": sum(data_df["SIFT"]),
+            "ORB": sum(data_df["ORB"]),
+            "SIFT & ORB": sum(data_df["SIFT & ORB"]),
+        },
+        x_label="Số lượng ảnh",
+        horizontal=True,
     )
+
+    st.write("- Ảnh phát hiện toàn bộ keypoint bằng cả **SIFT** và **ORB**:")
+    cols = st.columns(5)
+    cnt = 0
+    for i in range(8):
+        for id in set(pr_sift_fulls[i]).intersection(pr_orb_fulls[i]):
+            cols[cnt].image(
+                os.path.join(DATATYPES[i], "images", f"{id}.png"), use_column_width=True
+            )
+            cnt += 1

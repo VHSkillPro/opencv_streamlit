@@ -11,6 +11,9 @@ accuracy_rotations_sift = np.load(
 accuracy_rotations_orb = np.load(
     os.path.join(SERVICE_DIR, "accuracy_rotations_orb.npy")
 )
+accuracy_rotations_superpoint = np.load(
+    os.path.join(SERVICE_DIR, "accuracy_rotations_superpoint.npy")
+)
 
 
 @st.fragment()
@@ -20,10 +23,13 @@ def display_result():
         {
             "SIFT": accuracy_rotations_sift,
             "ORB": accuracy_rotations_orb,
+            "SuperPoint": accuracy_rotations_superpoint,
             "Góc quay": range(0, 360, 10),
         },
         x="Góc quay",
-        y=["SIFT", "ORB"],
+        y=["SIFT", "ORB", "SuperPoint"],
+        y_label="Accuracy",
+        x_label="Góc quay (độ)",
         stack=False,
         use_container_width=True,
     )

@@ -8,3 +8,5 @@ google-cloud-firestore
 firebase_admin
 scipy
 PyQt6
+torch
+tqdm
