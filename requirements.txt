@@ -7,3 +7,4 @@ scikit-learn
 google-cloud-firestore
 firebase_admin
 scipy
+PyQt6
