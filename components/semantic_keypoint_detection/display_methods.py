@@ -1,7 +1,12 @@
 import os
 import cv2
+import numpy as np
 import streamlit as st
-from services.semantic_keypoint_detection.services import DATATYPES, SERVICE_DIR
+from services.semantic_keypoint_detection.services import (
+    DATATYPES,
+    SERVICE_DIR,
+    draw_points,
+)
 
 sift = cv2.SIFT_create()
 orb = cv2.ORB_create()
@@ -42,9 +47,13 @@ def display_methods():
                 image = cv2.imread(os.path.join(DATATYPES[i], "images", "0.png"))
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = sift.detect(gray, None)
-                cv2.drawKeypoints(
-                    image, keypoints, image, flags=cv2.DRAW_MATCHES_FLAGS_DEFAULT
+
+                ground_truth = np.load(os.path.join(DATATYPES[i], "points", "0.npy"))
+                image = draw_points(
+                    image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
                 )
+                image = draw_points(image, ground_truth, (0, 255, 0), 1, 5)
+
                 r, c = i // 2, i % 2
                 cols[r][c].image(
                     image,
@@ -80,12 +89,23 @@ def display_methods():
                 image = cv2.imread(os.path.join(DATATYPES[i], "images", "0.png"))
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = orb.detect(gray, None)
-                cv2.drawKeypoints(
-                    image, keypoints, image, flags=cv2.DRAW_MATCHES_FLAGS_DEFAULT
+
+                ground_truth = np.load(os.path.join(DATATYPES[i], "points", "0.npy"))
+                image = draw_points(
+                    image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
                 )
+                image = draw_points(image, ground_truth, (0, 255, 0), 1, 5)
+
                 r, c = i // 2, i % 2
                 cols[r][c].image(
                     image,
                     use_column_width=True,
                     caption=DATATYPES[i].split("/")[-1].replace("draw_", ""),
                 )
+
+        st.write(
+            """
+            - Các vòng tròn màu **:green[xanh lục]** là **keypoints** từ **ground truth** có bán kính là $5$ pixels.
+            - Các hình tròn màu **:red[đỏ]** là **keypoints** được phát hiện bởi thuật toán **SIFT** và **ORB**.
+            """
+        )

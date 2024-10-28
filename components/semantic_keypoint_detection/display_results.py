@@ -42,6 +42,7 @@ def display_results():
             y_label="",
             x_label="Precision",
             horizontal=True,
+            color=["#0068C9", "#FFA500"],
         )
 
     with cols[1]:
@@ -63,4 +64,13 @@ def display_results():
             y_label="",
             x_label="Recall",
             horizontal=True,
+            color=["#0068C9", "#FFA500"],
         )
+
+    st.write(
+        """
+        - **ORB** có ưu thế hơn **SIFT** về cả **precision** và **recall** khi phát hiện keypoints trên $5$ loại hình checkboard, cube, multiple polygon, polygon và star.
+        - **SIFT** có ưu thế hơn **ORB** về cả **precision** và **recall** khi phát hiện keypoints trên loại hình stripes.
+        - Ở loại hình **lines**, **ORB** có **precision** cao hơn **SIFT** nhưng **recall** lại thấp hơn.
+        """
+    )
