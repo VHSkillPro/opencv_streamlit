@@ -1,9 +1,16 @@
 import pandas as pd
 import streamlit as st
 from components.face_verification import get_table_data
-from services.face_verification.service import StudentService
+from services.face_verification.service import ClassService, StudentService
 
 studentService = StudentService()
+classService = ClassService()
+
+
+@st.cache_data(ttl=3600)
+def get_list_classes():
+    classes = classService.repository.index()
+    return classes
 
 
 def show_form(id: str):
@@ -154,16 +161,19 @@ def handle_refresh():
     st.session_state["filter_student"] = {
         "student_id": "",
         "student_name": "",
+        "class_id": "",
     }
     get_table_data.clear()
+    get_list_classes.clear()
 
 
 @st.fragment()
 def display_student_manager():
     st.header(":material/manage_accounts: Quản lý sinh viên")
     with st.container(border=True):
-        button_cols = st.columns(8)
+        button_cols = st.columns([1, 1, 1, 1, 1, 1, 2], vertical_alignment="center")
 
+        # Show form actions
         if st.session_state["forms_state"]["form_add_student"] == True:
             display_form_add_student()
         elif st.session_state["forms_state"]["form_search_student"] == True:
@@ -171,10 +181,46 @@ def display_student_manager():
         elif st.session_state["forms_state"]["form_edit_student"] == True:
             display_form_edit_student()
 
+        # Show button refresh
+        with button_cols[0]:
+            st.button(
+                ":material/refresh: Làm mới",
+                use_container_width=True,
+                on_click=handle_refresh,
+            )
+
+        # Show button add student
+        with button_cols[1]:
+            st.button(
+                ":material/add: Thêm",
+                use_container_width=True,
+                on_click=lambda: show_form("form_add_student"),
+            )
+
+        # Show select class
+        with button_cols[-1]:
+            classes = get_list_classes()
+            classes_id = [""] + list(classes.keys())
+
+            def on_change_class():
+                st.session_state["filter_student"]["class_id"] = st.session_state[
+                    "select_class"
+                ]
+
+            st.selectbox(
+                "Chọn lớp",
+                classes_id,
+                format_func=lambda x: "Tất cả" if x == "" else classes[x]["name"],
+                key="select_class",
+                on_change=on_change_class,
+            )
+
+        # Show table data of students
         with st.container():
             table_data = get_table_data(
                 st.session_state["filter_student"]["student_id"],
                 st.session_state["filter_student"]["student_name"],
+                st.session_state["filter_student"]["class_id"],
             )
 
             if len(table_data["id"]) == 0:
@@ -201,6 +247,7 @@ def display_student_manager():
                 """
             )
 
+        # Save selected students
         st.session_state["selected_students"] = data_editor[
             data_editor["checkbox"] == True
         ]
@@ -228,20 +275,7 @@ def display_student_manager():
                 get_table_data.clear()
                 st.rerun()
 
-        with button_cols[0]:
-            st.button(
-                ":material/refresh: Làm mới",
-                use_container_width=True,
-                on_click=handle_refresh,
-            )
-
-        with button_cols[1]:
-            st.button(
-                ":material/add: Thêm",
-                use_container_width=True,
-                on_click=lambda: show_form("form_add_student"),
-            )
-
+        # Show button search student
         with button_cols[2]:
             st.button(
                 ":material/search: Tìm kiếm",
@@ -249,6 +283,7 @@ def display_student_manager():
                 on_click=lambda: show_form("form_search_student"),
             )
 
+        # Show button remove student
         if len(st.session_state["selected_students"]) > 0:
             with button_cols[3]:
                 st.button(
@@ -257,6 +292,7 @@ def display_student_manager():
                     on_click=handle_remove,
                 )
 
+        # Show button edit student
         if len(st.session_state["selected_students"]) == 1:
             with button_cols[4]:
                 st.button(

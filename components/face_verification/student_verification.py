@@ -10,6 +10,7 @@ from scipy.sparse.csgraph import maximum_bipartite_matching
 
 @st.fragment()
 def display_student_verification():
+    st.header(":material/people: Nhận diện sinh viên trong ảnh lớp học")
     with st.form(key="form_student_verification"):
         confThreshold = st.slider(
             "Chọn **confidence threshold** để phát hiện khuôn mặt", 0.0, 1.0, 0.85, 0.01

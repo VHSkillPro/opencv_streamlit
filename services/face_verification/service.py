@@ -340,3 +340,146 @@ class StudentService:
         if self.repository.delete(key):
             return f"Xóa sinh viên {student_id} thành công"
         return f"Xóa sinh viên {student_id} thất bại"
+
+
+class ClassService:
+    def __init__(self) -> None:
+        self.repository = Repository("classes")
+
+    def find(self, class_id: str = "", class_name: str = ""):
+        """
+        Find classes by class_id and class_name
+
+        Input:
+        - class_id: str - Class id to find
+        - class_name: str - Class name to find
+
+        Returns:
+        - List of filtered classes
+        """
+
+        # Get all classes
+        classes = self.repository.index()
+
+        # Remove Vietnamese accent
+        class_id = remove_vietnamese_accent(class_id)
+        class_name = remove_vietnamese_accent(class_name)
+
+        filtered_classes = {}
+        for key, data in classes.items():
+            is_match = True
+            id = remove_vietnamese_accent(data["id"])
+            name = remove_vietnamese_accent(data["name"])
+
+            # Check if class id match
+            if not re.search(class_id, id, re.IGNORECASE):
+                is_match = False
+
+            # Check if class name match
+            if not re.search(class_name, name, re.IGNORECASE):
+                is_match = False
+
+            # Add to filtered classes
+            if is_match:
+                filtered_classes[key] = data
+
+        return filtered_classes
+
+    def find_by_class_id(self, class_id: str):
+        """
+        Find class by class_id
+
+        Input:
+        - class_id: str - Class id to find
+
+        Returns:
+        - Class if found, `None` otherwise
+        """
+
+        collections = self.repository.db.collection("classes")
+        classes = collections.where("id", "==", class_id).stream()
+
+        result = {}
+        for class_ in classes:
+            result[class_.id] = class_.to_dict()
+            return result
+
+        return None
+
+    def insert(self, class_id: str, name: str) -> str:
+        """
+        Insert new class to database
+
+        Input:
+        - class_id: str - Class id
+        - name: str - Class name
+
+        Returns:
+        - Message after insert class
+        """
+
+        class_ = self.find_by_class_id(class_id)
+        if class_ is not None:
+            return f"Lớp {class_id} đã tồn tại"
+
+        docs = {
+            "id": class_id,
+            "name": name,
+        }
+
+        self.repository.insert(docs)
+        return f"Thêm lớp {class_id} thành công"
+
+    def update(self, class_id: str, name: str) -> str:
+        """
+        Update class by class_id
+
+        Input:
+        - class_id: str - Class id
+        - name: str - Class name
+
+        Returns:
+        - Message after update class
+        """
+
+        class_ = self.find_by_class_id(class_id)
+        if class_ is None:
+            return f"Lớp {class_id} không tồn tại"
+
+        key = list(class_.keys())[0]
+        class_ = list(class_.values())[0]
+
+        class_["name"] = name
+        if self.repository.update(key, class_):
+            return f"Cập nhật lớp {class_id} thành công"
+        return f"Cập nhật lớp {class_id} thất bại"
+
+    def delete(self, class_id: str) -> str:
+        """
+        Delete class by class_id
+
+        Input:
+        - class_id: str - Class id to delete
+
+        Returns:
+        - Message after delete class
+        """
+
+        class_ = self.find_by_class_id(class_id)
+        if class_ is None:
+            return f"Lớp {class_id} không tồn tại"
+
+        key = list(class_.keys())[0]
+
+        if self.repository.delete(key):
+            return f"Xóa lớp {class_id} thành công"
+
+
+# class StudentClassService:
+#     def __init__(self) -> None:
+#         self.repository = Repository("students_classes")
+
+#     def find(self, student_id: str = "", class_id: str = ""):
+#         """
+#         Find student classes by student_id and class_id
+#         """

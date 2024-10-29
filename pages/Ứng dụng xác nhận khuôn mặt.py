@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image
 
 from components.face_verification import init_session_state
+from components.face_verification.class_manager import display_class_manager
 from components.face_verification.face_verification import display_face_verification
 from components.face_verification.student_manager import display_student_manager
 from components.face_verification.student_verification import (
@@ -24,10 +25,7 @@ if len(st.session_state["toasts"]) > 0:
 
 st.title("Ứng dụng xác nhận khuôn mặt")
 
+display_class_manager()
 display_student_manager()
-
-st.header(":material/face: Xác thực khuôn mặt trong ảnh chân dung và thẻ sinh viên")
 display_face_verification()
-
-st.header(":material/people: Nhận diện sinh viên trong ảnh lớp học")
 display_student_verification()
