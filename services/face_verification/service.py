@@ -475,11 +475,54 @@ class ClassService:
             return f"Xóa lớp {class_id} thành công"
 
 
-# class StudentClassService:
-#     def __init__(self) -> None:
-#         self.repository = Repository("students_classes")
+class StudentClassService:
+    def __init__(self) -> None:
+        self.repository = Repository("students_classes")
+        self.classService = ClassService()
 
-#     def find(self, student_id: str = "", class_id: str = ""):
-#         """
-#         Find student classes by student_id and class_id
-#         """
+    def find(self, class_id: str = "", student_id: str = "", student_name: str = ""):
+        """
+        Find students by class_id
+
+        Input:
+        - class_id: str - Class id to find
+
+        Returns:
+        - List of filtered students in class, `None` if class not found
+        """
+        # Lấy danh sách student_id từ bảng students_classes theo class_id
+        students_classes_ref = self.repository.db.collection("students_classes")
+        query = students_classes_ref.where("class_id", "==", class_id)
+        students_classes_docs = query.stream()
+
+        # Lấy danh sách student_id từ kết quả truy vấn
+        student_ids = [doc.to_dict()["student_id"] for doc in students_classes_docs]
+        if len(student_ids) == 0:
+            return {}
+
+        # Lấy thông tin chi tiết của từng sinh viên từ bảng students
+        student_ref = self.repository.db.collection("students")
+        students_doc = student_ref.where("id", "in", student_ids).stream()
+
+        students = {}
+        for student in students_doc:
+            key = student.id
+            data = student.to_dict()
+
+            is_match = True
+            id = remove_vietnamese_accent(data["id"])
+            name = remove_vietnamese_accent(data["name"])
+
+            # Check if student id match
+            if not re.search(student_id, id, re.IGNORECASE):
+                is_match = False
+
+            # Check if student name match
+            if not re.search(student_name, name, re.IGNORECASE):
+                is_match = False
+
+            # Add to filtered students
+            if is_match:
+                students[key] = data
+
+        return students

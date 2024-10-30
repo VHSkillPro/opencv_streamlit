@@ -1,8 +1,13 @@
 import streamlit as st
-from services.face_verification.service import ClassService, StudentService
+from services.face_verification.service import (
+    ClassService,
+    StudentClassService,
+    StudentService,
+)
 
 studentService = StudentService()
 classService = ClassService()
+studentClassService = StudentClassService()
 
 
 def init_session_state():
@@ -47,7 +52,7 @@ def init_session_state():
         st.session_state["selected_classes"] = []
 
 
-@st.cache_data(ttl="1h")
+@st.cache_resource(ttl="1h")
 def get_table_data(student_id: str = "", student_name: str = "", class_id: str = ""):
     """
     Get table data of students
@@ -57,19 +62,16 @@ def get_table_data(student_id: str = "", student_name: str = "", class_id: str =
         student_name - Student name to filter
 
     ## Returns:
-        Table data of students
+        Table data of students and students data
     """
 
-    st.session_state["students_data"] = {
-        "face_labels": [],
-        "face_names": [],
-        "card_face_features": [],
-        "selfie_face_features": [],
-    }
+    students = None
+    if class_id == "":
+        students = studentService.find(student_id, student_name)
+    else:
+        students = studentClassService.find(class_id, student_id, student_name)
 
-    students = studentService.find(student_id, student_name)
     table_data = {"checkbox": [], "id": [], "name": [], "card": [], "selfie": []}
-
     for id, student in students.items():
         table_data["checkbox"].append(False)
         table_data["id"].append(student["id"])
@@ -79,16 +81,7 @@ def get_table_data(student_id: str = "", student_name: str = "", class_id: str =
             studentService.storage.get_url(student["selfie"], 3600)
         )
 
-        st.session_state["students_data"]["face_labels"].append(student["id"])
-        st.session_state["students_data"]["face_names"].append(student["name"])
-        st.session_state["students_data"]["card_face_features"].append(
-            student["card_face_feature"]
-        )
-        st.session_state["students_data"]["selfie_face_features"].append(
-            student["selfie_face_feature"]
-        )
-
-    return table_data
+    return table_data, students
 
 
 @st.cache_data(ttl="1h")

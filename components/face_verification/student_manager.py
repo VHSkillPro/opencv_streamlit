@@ -199,7 +199,8 @@ def display_student_manager():
 
         # Show select class
         with button_cols[-1]:
-            classes = get_list_classes()
+            classes_raw = get_list_classes()
+            classes = {class_["id"]: class_ for id, class_ in classes_raw.items()}
             classes_id = [""] + list(classes.keys())
 
             def on_change_class():
@@ -217,12 +218,31 @@ def display_student_manager():
 
         # Show table data of students
         with st.container():
-            table_data = get_table_data(
+            table_data, students_raw = get_table_data(
                 st.session_state["filter_student"]["student_id"],
                 st.session_state["filter_student"]["student_name"],
                 st.session_state["filter_student"]["class_id"],
             )
 
+            # Update students data
+            st.session_state["students_data"] = {
+                "face_labels": [],
+                "face_names": [],
+                "card_face_features": [],
+                "selfie_face_features": [],
+            }
+
+            for id, student in students_raw.items():
+                st.session_state["students_data"]["face_labels"].append(student["id"])
+                st.session_state["students_data"]["face_names"].append(student["name"])
+                st.session_state["students_data"]["card_face_features"].append(
+                    student["card_face_feature"]
+                )
+                st.session_state["students_data"]["selfie_face_features"].append(
+                    student["selfie_face_feature"]
+                )
+
+            # Show table data
             if len(table_data["id"]) == 0:
                 st.write("Không có sinh viên nào.")
                 return pd.DataFrame(table_data)
