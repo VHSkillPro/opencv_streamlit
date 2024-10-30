@@ -1,10 +1,15 @@
 import pandas as pd
 import streamlit as st
 from components.face_verification import get_table_data
-from services.face_verification.service import ClassService, StudentService
+from services.face_verification.service import (
+    ClassService,
+    StudentClassService,
+    StudentService,
+)
 
 studentService = StudentService()
 classService = ClassService()
+studentClassService = StudentClassService()
 
 
 @st.cache_data(ttl=3600)
@@ -65,6 +70,41 @@ def display_form_add_student():
         if is_valid:
             result = studentService.insert(id, name, card, selfie)
             if result == "Thêm sinh viên thành công":
+                get_table_data.clear()
+                st.toast(result, icon=":material/check:")
+            else:
+                st.toast(result, icon=":material/error:")
+
+
+def display_form_add_student_in_class():
+    with st.form(key="form_add_student_in_class"):
+        st.markdown(
+            f"#### Thêm sinh viên vào lớp {st.session_state['filter_student']['class_id']}"
+        )
+        student_id_container = st.container()
+        student_id = student_id_container.text_input("Mã sinh viên")
+
+        cols = st.columns(8)
+        btnSubmit = cols[0].form_submit_button(
+            ":material/add: Thêm", use_container_width=True
+        )
+        cols[1].form_submit_button(
+            ":material/close: Đóng", use_container_width=True, on_click=hidden_all_forms
+        )
+
+    if btnSubmit:
+        is_valid = True
+        if student_id.strip() == "":
+            student_id_container.error("Mã sinh viên không được để trống.")
+            is_valid = False
+
+        if is_valid:
+            result = studentClassService.insert(
+                st.session_state["filter_student"]["class_id"], student_id
+            )
+
+            class_id = st.session_state["filter_student"]["class_id"]
+            if result == f"Thêm sinh viên {student_id} vào lớp {class_id} thành công":
                 get_table_data.clear()
                 st.toast(result, icon=":material/check:")
             else:
@@ -158,11 +198,8 @@ def handle_refresh():
     Handle refresh button click event
     """
 
-    st.session_state["filter_student"] = {
-        "student_id": "",
-        "student_name": "",
-        "class_id": "",
-    }
+    st.session_state["filter_student"]["student_id"] = ""
+    st.session_state["filter_student"]["student_name"] = ""
     get_table_data.clear()
     get_list_classes.clear()
 
@@ -175,7 +212,10 @@ def display_student_manager():
 
         # Show form actions
         if st.session_state["forms_state"]["form_add_student"] == True:
-            display_form_add_student()
+            if st.session_state["filter_student"]["class_id"] != "":
+                display_form_add_student_in_class()
+            else:
+                display_form_add_student()
         elif st.session_state["forms_state"]["form_search_student"] == True:
             display_form_search_student()
         elif st.session_state["forms_state"]["form_edit_student"] == True:
@@ -264,6 +304,7 @@ def display_student_manager():
                 - Click đúp vào ô ảnh cần xem để phóng to ảnh.
                 - Chọn một sinh viên để chỉnh sửa.
                 - Chọn một hoặc nhiều sinh viên để xóa.
+                - Nếu muốn thêm hoặc xoá sinh viên vào lớp, hãy chọn lớp trước khi thêm hoặc xoá sinh viên.
                 """
             )
 
@@ -295,6 +336,31 @@ def display_student_manager():
                 get_table_data.clear()
                 st.rerun()
 
+        @st.dialog("Xác nhận xóa")
+        def handle_remove_student_in_class():
+            st.write("Bạn có chắc chắn muốn xóa sinh viên đã chọn khỏi lớp không?")
+            st.write("Hành động này không thể hoàn tác.")
+
+            if st.button("Xóa"):
+                ids = st.session_state["selected_students"]["id"].values
+                class_id = st.session_state["filter_student"]["class_id"]
+                for id in ids:
+                    result = studentClassService.delete(class_id, id)
+                    st.session_state["toasts"].append(
+                        {
+                            "body": result,
+                            "icon": (
+                                ":material/check:"
+                                if result
+                                == f"Xóa sinh viên {id} khỏi lớp {class_id} thành công"
+                                else ":material/error:"
+                            ),
+                        }
+                    )
+                st.session_state["selected_students"] = []
+                get_table_data.clear()
+                st.rerun()
+
         # Show button search student
         with button_cols[2]:
             st.button(
@@ -306,11 +372,18 @@ def display_student_manager():
         # Show button remove student
         if len(st.session_state["selected_students"]) > 0:
             with button_cols[3]:
-                st.button(
-                    ":material/delete: Xóa",
-                    use_container_width=True,
-                    on_click=handle_remove,
-                )
+                if st.session_state["filter_student"]["class_id"] != "":
+                    st.button(
+                        ":material/delete: Xóa",
+                        use_container_width=True,
+                        on_click=handle_remove_student_in_class,
+                    )
+                else:
+                    st.button(
+                        ":material/delete: Xóa",
+                        use_container_width=True,
+                        on_click=handle_remove,
+                    )
 
         # Show button edit student
         if len(st.session_state["selected_students"]) == 1:

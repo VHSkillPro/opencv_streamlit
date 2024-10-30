@@ -7,6 +7,7 @@ from services.face_verification.yunet import YuNet
 from services.face_verification.sface import SFace
 from services.face_verification.db import Repository, Storage
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from google.cloud.firestore_v1.base_query import FieldFilter, And
 
 
 class StudentService:
@@ -526,3 +527,62 @@ class StudentClassService:
                 students[key] = data
 
         return students
+
+    def insert(self, class_id: str, student_id: str) -> str:
+        """
+        Insert new students to class
+
+        Input:
+        - class_id: str - Class id
+        - student_ids: str - List of student id
+
+        Returns:
+        - Message after insert students to class
+        """
+        class_ = self.classService.find_by_class_id(class_id)
+        if class_ is None:
+            return f"Lớp {class_id} không tồn tại"
+
+        student = StudentService().find_by_student_id(student_id)
+        if student is None:
+            return f"Sinh viên {student_id} không tồn tại"
+
+        docs = {
+            "class_id": class_id,
+            "student_id": student_id,
+        }
+        self.repository.insert(docs)
+        return f"Thêm sinh viên {student_id} vào lớp {class_id} thành công"
+
+    def delete(self, class_id: str, student_id: str) -> str:
+        """
+        Delete student from class
+
+        Input:
+        - class_id: str - Class id
+        - student_id: str - Student id
+
+        Returns:
+        - Message after delete student from class
+        """
+        students_classes_ref = self.repository.db.collection("students_classes")
+        query = students_classes_ref.where(
+            filter=And(
+                [
+                    FieldFilter("class_id", "==", class_id),
+                    FieldFilter("student_id", "==", student_id),
+                ]
+            )
+        )
+        students_classes_docs = query.stream()
+        students_classes = {}
+        for doc in students_classes_docs:
+            students_classes[doc.id] = doc.to_dict()
+
+        if len(list(students_classes.keys())) == 0:
+            return f"Sinh viên {student_id} không tồn tại trong lớp {class_id}"
+
+        key = list(students_classes.keys())[0]
+        if self.repository.delete(key):
+            return f"Xóa sinh viên {student_id} khỏi lớp {class_id} thành công"
+        return f"Xóa sinh viên {student_id} khỏi lớp {class_id} thất bại"
