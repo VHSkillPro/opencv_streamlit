@@ -11,6 +11,7 @@ from scipy.sparse.csgraph import maximum_bipartite_matching
 @st.fragment()
 def display_student_verification():
     st.header(":material/people: Nhận diện sinh viên trong ảnh lớp học")
+
     with st.form(key="form_student_verification"):
         confThreshold = st.slider(
             "Chọn **confidence threshold** để phát hiện khuôn mặt", 0.0, 1.0, 0.85, 0.01
@@ -40,15 +41,21 @@ def display_student_verification():
                     )
 
                     match_matrix = np.zeros(
-                        (len(faces), len(st.session_state["face_labels"]))
+                        (
+                            len(faces),
+                            len(st.session_state["students_data"]["face_labels"]),
+                        )
                     )
                     score_matrix = np.zeros(
-                        (len(faces), len(st.session_state["face_labels"]))
+                        (
+                            len(faces),
+                            len(st.session_state["students_data"]["face_labels"]),
+                        )
                     )
                     for i, face in enumerate(faces):
                         feature = embedder.infer(img, face)
                         for j, face_features in enumerate(
-                            st.session_state["card_face_features"]
+                            st.session_state["students_data"]["selfie_face_features"]
                         ):
                             score, match = embedder.match_feature(
                                 feature,
@@ -76,7 +83,9 @@ def display_student_verification():
                                 img[_y : _y + _h, _x : _x + _w],
                                 channels="BGR",
                                 use_column_width=True,
-                                caption=st.session_state["face_names"][id],
+                                caption=st.session_state["students_data"]["face_names"][
+                                    id
+                                ],
                             )
 
                             cv2.rectangle(
@@ -84,7 +93,7 @@ def display_student_verification():
                             )
                             cv2.putText(
                                 img,
-                                st.session_state["face_labels"][id],
+                                st.session_state["students_data"]["face_labels"][id],
                                 (_x, _y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX,
                                 0.9,
