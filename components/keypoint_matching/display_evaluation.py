@@ -24,13 +24,13 @@ def display_evaluation():
     cols = st.columns(2, gap="large", vertical_alignment="center")
     with cols[0]:
         st.image(
-            "https://www.24tutorials.com/wp-content/uploads/2018/09/euclidean-distance-formula-24tutorials.png",
+            "services/keypoint_matching/euclidean-distance-formula-24tutorials.png",
             caption="Khoảng cách Euclidean",
             use_column_width=True,
         )
     with cols[1]:
         st.image(
-            "https://www.researchgate.net/publication/264978395/figure/fig1/AS:295895569584128@1447558409105/Example-of-Hamming-Distance.png",
+            "services/keypoint_matching/Example-of-Hamming-Distance.png",
             caption="Khoảng cách Hamming",
             use_column_width=True,
         )

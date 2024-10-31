@@ -1,3 +1,5 @@
+from typing import List
+import cv2
 import torch
 import numpy as np
 
@@ -201,6 +203,7 @@ class SuperPointFrontend(object):
         toremoveH = np.logical_or(pts[1, :] < bord, pts[1, :] >= (H - bord))
         toremove = np.logical_or(toremoveW, toremoveH)
         pts = pts[:, ~toremove]
+        print(pts)
         # --- Process descriptor.
         D = coarse_desc.shape[1]
         if pts.shape[1] == 0:
@@ -219,3 +222,50 @@ class SuperPointFrontend(object):
             desc = desc.data.cpu().numpy().reshape(D, -1)
             desc /= np.linalg.norm(desc, axis=0)[np.newaxis, :]
         return pts, desc, heatmap
+
+    def compute(self, img, keypoints: List[cv2.KeyPoint]):
+        """
+        Compute the descriptors for the given keypoints.
+
+        :param img: HxW numpy float32 input image in range [0,1].
+        :param keypoints: List of cv2.KeyPoint objects.
+        """
+
+        if len(keypoints) == 0 or keypoints is None:
+            return None, None
+
+        assert img.ndim == 2, "Image must be grayscale."
+        assert img.dtype == np.float32, "Image must be float32."
+
+        H, W = img.shape[0], img.shape[1]
+        inp = img.copy()
+        inp = inp.reshape(1, H, W)
+        inp = torch.from_numpy(inp)
+        inp = torch.autograd.Variable(inp).view(1, 1, H, W)
+        if self.cuda:
+            inp = inp.cuda()
+
+        # Forward pass of network.
+        outs = self.net.forward(inp)
+        _, coarse_desc = outs[0], outs[1]
+
+        # Convert keypoints to numpy array.
+        pts = np.array([[kp.pt[0], kp.pt[1], 1] for kp in keypoints]).T
+
+        D = coarse_desc.shape[1]
+        if pts.shape[1] == 0:
+            desc = np.zeros((D, 0))
+        else:
+            # Interpolate into descriptor map using 2D point locations.
+            samp_pts = torch.from_numpy(pts[:2, :].copy())
+            samp_pts[0, :] = (samp_pts[0, :] / (float(W) / 2.0)) - 1.0
+            samp_pts[1, :] = (samp_pts[1, :] / (float(H) / 2.0)) - 1.0
+            samp_pts = samp_pts.transpose(0, 1).contiguous()
+            samp_pts = samp_pts.view(1, 1, -1, 2)
+            samp_pts = samp_pts.float()
+            if self.cuda:
+                samp_pts = samp_pts.cuda()
+            desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts)
+            desc = desc.data.cpu().numpy().reshape(D, -1)
+            desc /= np.linalg.norm(desc, axis=0)[np.newaxis, :]
+        return pts, desc.T

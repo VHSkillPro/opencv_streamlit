@@ -5,14 +5,10 @@ import streamlit as st
 
 from components.keypoint_matching import SERVICE_DIR
 
-accuracy_rotations_sift = np.load(
-    os.path.join(SERVICE_DIR, "accuracy_rotations_sift.npy")
-)
-accuracy_rotations_orb = np.load(
-    os.path.join(SERVICE_DIR, "accuracy_rotations_orb.npy")
-)
+accuracy_rotations_sift = np.load(os.path.join(SERVICE_DIR, "results_sift.npy"))
+accuracy_rotations_orb = np.load(os.path.join(SERVICE_DIR, "results_orb.npy"))
 accuracy_rotations_superpoint = np.load(
-    os.path.join(SERVICE_DIR, "accuracy_rotations_superpoint.npy")
+    os.path.join(SERVICE_DIR, "results_superpoint.npy")
 )
 
 

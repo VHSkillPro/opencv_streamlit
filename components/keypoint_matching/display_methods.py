@@ -13,7 +13,7 @@ def display_methods():
         """
     )
     st.columns([1, 4, 1])[1].image(
-        "https://www.researchgate.net/publication/381372557/figure/fig1/AS:11431281251582233@1718249424443/The-model-architecture-of-the-SuperPoint3.ppm",
+        "./services/keypoint_matching/The-model-architecture-of-the-SuperPoint3.png",
         caption="Kiến trúc của mô hình SuperPoint",
         use_column_width=True,
     )
