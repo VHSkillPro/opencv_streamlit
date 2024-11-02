@@ -12,7 +12,6 @@ fe = SuperPointFrontend(
     nms_dist=4,
     conf_thresh=0.015,
     nn_thresh=0.7,
-    cuda=True,
 )
 
 codebook = np.load("./services/image_search_engine/codebook.npy")
