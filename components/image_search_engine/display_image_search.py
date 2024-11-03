@@ -2,22 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import streamlit as st
-
-# from components.image_search_engine import vectors, image_names
-from sklearn.metrics.pairwise import cosine_similarity
-from services.image_search_engine.services import VectorQuantization
-from services.image_search_engine.superpoint import SuperPointFrontend
-
-fe = SuperPointFrontend(
-    weights_path="./services/image_search_engine/superpoint_v1.pth",
-    nms_dist=4,
-    conf_thresh=0.015,
-    nn_thresh=0.7,
-)
-
-# codebook = np.load("./services/image_search_engine/codebook.npy")
-# idf = np.load("./services/image_search_engine/idf.npy")
-# vq = VectorQuantization(codebook, idf)
+from services.image_search_engine.services import search_image
 
 
 @st.fragment()
@@ -36,26 +21,23 @@ def display_image_search():
         if uploaded_image is None:
             st.warning("Vui lòng chọn ảnh cần truy vấn!")
         else:
+            mybar = st.progress(0)
+
             image = Image.open(uploaded_image)
             image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-            st.write("Ảnh truy vấn:")
-            st.image(image, use_column_width=True, channels="BGR")
+            with st.expander("Thông tin ảnh truy vấn"):
+                st.write("Ảnh truy vấn:")
+                st.image(image, use_column_width=True, channels="BGR")
 
-            gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            gray_scale = gray_scale.astype(np.float32) / 255.0
-            _, desc, __ = fe.run(gray_scale)
-            desc = desc.T
-
-            # query_vector = vq.transform(desc)
-            # scores = cosine_similarity([query_vector], vectors)
-            # topk = np.argsort(scores[0])[::-1][:image_number]
-
-            # st.write("Kết quả truy vấn:")
-            # cols = [st.columns(5) for _ in range(0, image_number, 5)]
-            # for i, idx in enumerate(topk):
-            #     cols[i // 5][i % 5].image(
-            #         f"./services/image_search_engine/val2017/images/{image_names[idx]}",
-            #         caption=f"#{i + 1}",
-            #         use_column_width=True,
-            #     )
+            # Search for similar images
+            results = search_image(image, image_number, mybar)
+            cols = [st.columns(5) for _ in range(0, len(results), 5)]
+            for i, result in enumerate(results):
+                with cols[i // 5][i % 5]:
+                    st.image(
+                        result,
+                        use_column_width=True,
+                        channels="BGR",
+                        caption=f"Ảnh {i+1}",
+                    )

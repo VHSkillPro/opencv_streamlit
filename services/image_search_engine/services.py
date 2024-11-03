@@ -1,89 +1,38 @@
+import os
+import cv2
 import numpy as np
 
-# from faiss import Kmeans
-from scipy.cluster.vq import vq
-from tqdm import tqdm
+DATASET_DIR = "./services/image_search_engine/val2017"
+images_name = os.listdir(os.path.join(DATASET_DIR, "images"))
+
+orb = cv2.ORB_create()
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
 
-# class BoVW:
-#     def __init__(self, k_visual_word=1024, dimension=256) -> None:
-#         self.k_visual_word = k_visual_word
-#         self.dimension = dimension
-#         self.kmeans = Kmeans(d=dimension, k=k_visual_word, verbose=True, gpu=True)
+def search_image(img: cv2.typing.MatLike, top_k: int, mybar=None) -> list[str]:
+    """
+    Search for similar images to the input image
 
-#     def fit(self, X: np.ndarray) -> None:
-#         assert (
-#             len(X.shape) == 2 and X.shape[1] == self.dimension
-#         ), f"X should be 2D array with shape (n_samples, {self.dimension})"
-#         self.kmeans.train(X)
+    :param img: input image
+    :return: list of similar image paths
+    """
+    gray_scale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, query_descriptors = orb.detectAndCompute(gray_scale, None)
 
-#     def get_codebook(self) -> np.ndarray:
-#         return self.kmeans.centroids
+    results = []
+    for image_name in images_name:
+        image_name_no_ext = os.path.splitext(image_name)[0]
+        descriptors = np.load(
+            os.path.join(DATASET_DIR, "descriptors", f"{image_name_no_ext}.npy")
+        )
 
+        matches = bf.match(query_descriptors, descriptors)
+        matches = sorted(matches, key=lambda x: x.distance)
+        results.append((image_name, len(matches)))
 
-class VectorQuantization:
-    def __init__(self, codebook: np.ndarray, idf: np.ndarray = None) -> None:
-        if idf is not None:
-            assert len(idf.shape) == 1, "idf should be 1D array"
-            assert idf.shape[0] == codebook.shape[0], "Dimension mismatch"
-        self.codebook = codebook
-        self.idf = idf
+        if mybar is not None:
+            mybar.progress(len(results) / len(images_name))
 
-    def fit(self, X: list[np.ndarray]) -> None:
-        """
-        Compute frequency vector for each image in X
-
-        :param X: list of 2D array with shape (n_samples, dimension)
-        :return: frequency_vectors: 2D array with shape (n_samples, k_visual_word)
-        """
-
-        dimension = X[0].shape[1]
-        for i in range(len(X)):
-            assert (
-                len(X[i].shape) == 2 and X[i].shape[1] == dimension
-            ), f"X[{i}] should be 2D array with shape (n_samples, {dimension})"
-
-        # Compute visual words
-        visual_words = []
-        for x in tqdm(X, desc="Computing visual words"):
-            visual_word, _ = vq(x, self.codebook)
-            visual_words.append(visual_word)
-
-        # Compute frequency vector
-        frequency_vectors = []
-        for img_visual_words in tqdm(visual_words, "Computing frequency vectors"):
-            img_frequency_vector = np.zeros(self.codebook.shape[0])
-            for word in img_visual_words:
-                img_frequency_vector[word] += 1
-            frequency_vectors.append(img_frequency_vector)
-        frequency_vectors = np.stack(frequency_vectors)
-
-        # Using tf-idf to normalize frequency vector
-        N = len(X)
-        df = np.sum(frequency_vectors > 0, axis=0)
-        self.idf = np.log(N / df)
-
-        self.frequency_vectors = frequency_vectors * self.idf
-        return self.frequency_vectors
-
-    def transform(self, X: np.ndarray) -> np.ndarray:
-        """
-        Compute frequency vector for descriptors X of an image
-
-        :param X: descriptors of an image with shape (n_samples, dimension)
-        :return: frequency_vector: 1D array with shape (k_visual_word)
-        """
-
-        assert self.idf is not None, "You should fit the model first"
-        assert len(X.shape) == 2, "X should be 2D array"
-        assert X.shape[1] == self.codebook.shape[1], "Dimension mismatch"
-
-        # Compute frequency vector
-        visual_words, _ = vq(X, self.codebook)
-        frequency_vector = np.zeros(self.codebook.shape[0])
-        for word in visual_words:
-            frequency_vector[word] += 1
-
-        # Using tf-idf to normalize frequency vector
-        frequency_vector *= self.idf
-        return frequency_vector
+    results = sorted(results, key=lambda x: x[1], reverse=True)
+    results = results[:top_k]
+    return [os.path.join(DATASET_DIR, "images", result[0]) for result in results]
