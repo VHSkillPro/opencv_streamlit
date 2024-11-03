@@ -1,8 +1,6 @@
 import os
 import numpy as np
-import pandas as pd
 import streamlit as st
-
 from components.keypoint_matching import SERVICE_DIR
 
 accuracy_rotations_sift = np.load(os.path.join(SERVICE_DIR, "results_sift.npy"))
@@ -45,3 +43,21 @@ def display_result():
                 - Ở hầu hết các góc xoay từ $30\degree$ trở lên, độ chính xác của **SuperPoint** duy trì ở mức thấp, khoảng $0.2$ đến $0.4$. 
         """
     )
+
+    for type in [0, 1, 3, 4, 5, 6, 7]:
+        cols = st.columns(3)
+        cols[0].image(
+            os.path.join(SERVICE_DIR, "results", f"sift_{type}_10.png"),
+            caption=f"SIFT - Góc xoay 10 độ",
+            use_column_width=True,
+        )
+        cols[1].image(
+            os.path.join(SERVICE_DIR, "results", f"orb_{type}_10.png"),
+            caption=f"ORB - Góc xoay 10 độ",
+            use_column_width=True,
+        )
+        cols[2].image(
+            os.path.join(SERVICE_DIR, "results", f"superpoint_{type}_10.png"),
+            caption=f"SuperPoint - Góc xoay 10 độ",
+            use_column_width=True,
+        )
