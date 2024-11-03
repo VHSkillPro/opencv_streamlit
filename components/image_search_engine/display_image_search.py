@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 from PIL import Image
 import streamlit as st
-from components.image_search_engine import vectors, image_names
+
+# from components.image_search_engine import vectors, image_names
 from sklearn.metrics.pairwise import cosine_similarity
 from services.image_search_engine.services import VectorQuantization
 from services.image_search_engine.superpoint import SuperPointFrontend
@@ -14,9 +15,9 @@ fe = SuperPointFrontend(
     nn_thresh=0.7,
 )
 
-codebook = np.load("./services/image_search_engine/codebook.npy")
-idf = np.load("./services/image_search_engine/idf.npy")
-vq = VectorQuantization(codebook, idf)
+# codebook = np.load("./services/image_search_engine/codebook.npy")
+# idf = np.load("./services/image_search_engine/idf.npy")
+# vq = VectorQuantization(codebook, idf)
 
 
 @st.fragment()
@@ -46,15 +47,15 @@ def display_image_search():
             _, desc, __ = fe.run(gray_scale)
             desc = desc.T
 
-            query_vector = vq.transform(desc)
-            scores = cosine_similarity([query_vector], vectors)
-            topk = np.argsort(scores[0])[::-1][:image_number]
+            # query_vector = vq.transform(desc)
+            # scores = cosine_similarity([query_vector], vectors)
+            # topk = np.argsort(scores[0])[::-1][:image_number]
 
-            st.write("Kết quả truy vấn:")
-            cols = [st.columns(5) for _ in range(0, image_number, 5)]
-            for i, idx in enumerate(topk):
-                cols[i // 5][i % 5].image(
-                    f"./services/image_search_engine/val2017/images/{image_names[idx]}",
-                    caption=f"#{i + 1}",
-                    use_column_width=True,
-                )
+            # st.write("Kết quả truy vấn:")
+            # cols = [st.columns(5) for _ in range(0, image_number, 5)]
+            # for i, idx in enumerate(topk):
+            #     cols[i // 5][i % 5].image(
+            #         f"./services/image_search_engine/val2017/images/{image_names[idx]}",
+            #         caption=f"#{i + 1}",
+            #         use_column_width=True,
+            #     )
