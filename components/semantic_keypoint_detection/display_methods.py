@@ -108,7 +108,8 @@ def display_methods():
                 - **ORB** (Oriented FAST and Rotated BRIEF) là một thuật toán được sử dụng để phát hiện và mô tả các keypoints trong hình ảnh.
                 **ORB** được giới thiệu bởi **Ethan Rublee**, **Vincent Rabaud**, **Kurt Konolige** và **Gary R. Bradski** vào năm **2011** trong bài báo 
                 [*ORB: An efficient alternative to SIFT or SURF*](https://d1wqtxts1xzle7.cloudfront.net/90592905/145_s14_01-libre.pdf?1662172284=&response-content-disposition=inline%3B+filename%3DORB_An_efficient_alternative_to_SIFT_or.pdf&Expires=1729524210&Signature=dzhjTEuC-108NuiZwUIbVZStCXz5tryasM0l0sJpPx5kdMxzlIQ9ypiVK-Nrr7U4jRASqrmcG-7n0Q9nJhhEZpdOrtUd-Jw4zuBd53Z1tDUPa9BhZqImVlP3cQgAvMzsdoTsrV~yFTinoWzUKuuURdUn8jsWkqCgOzXur~sMPB4Svlihs-vGyIOL1b1hRbGLrNqwUM9KRXQAJuz2-kndG9S1zf-BReO262Qrjv7pmcgA6k4QdxajVDYqOnQDO89xUp2P0CjQwW0pwiOJ~RctdWw1fXQo2tmPPKvNsB-iXkOdKApkigZN27cAR2NH2NA39VOy~MkKHe1LefLCaSIeRw__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA).
-                - **ORB** là một phương pháp kết hợp giữa **FAST** (Feature from Accelerated Segment Test) và **BRIEF** (Binary Robust Independent Elementary Features).
+                - **ORB** là một phương pháp kết hợp giữa [**FAST**](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=e3d7f693bf2d3510a0557cda52c7547820fbef97) 
+                (Feature from Accelerated Segment Test) và [**BRIEF**](https://infoscience.epfl.ch/server/api/core/bitstreams/730297d3-87f5-4580-877b-7064bc686198/content) (Binary Robust Independent Elementary Features).
                 - Thuật toán **ORB** có ưu điểm là nhanh, hiệu quả và không bị ràng buộc bởi các vấn đề về bằng sáng chế như **SIFT**.
                 """
             )
