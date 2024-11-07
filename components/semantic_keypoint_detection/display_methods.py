@@ -96,7 +96,7 @@ def display_methods():
                 cols[r][c].image(
                     image,
                     use_column_width=True,
-                    caption=DATATYPES[i].split("/")[-1].replace("draw_", ""),
+                    caption=f"Hình 2.1.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")}",
                 )
 
     with st.container():
@@ -145,7 +145,7 @@ def display_methods():
                 cols[r][c].image(
                     image,
                     use_column_width=True,
-                    caption=DATATYPES[i].split("/")[-1].replace("draw_", ""),
+                    caption=f"Hình 2.2.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")}",
                 )
 
         st.write(
