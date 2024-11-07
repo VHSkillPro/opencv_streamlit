@@ -7,10 +7,10 @@ from services.semantic_keypoint_detection.services import draw_points, DATATYPES
 
 @st.fragment()
 def display_datasets():
-    st.header("1. Synthetic Shapes Datasets")
+    st.header("1. Synthetic Shapes Dataset")
     st.write(
         """
-        - **Synthetic Shapes Datasets** là bộ dữ liệu được tổng hợp từ các hình học 2D 
+        - **Synthetic Shapes Dataset** là bộ dữ liệu được tổng hợp từ các hình học 2D 
         đơn giản thông qua kết hợp các hình cơ bản như hình vuông, hình tròn, hình elip, 
         hình sao, hình đa giác, hình đa giác nhiều cạnh, hình dải, hình ô vuông, hình đường thẳng. 
         Tập dữ liệu gồm $8$ loại hình học cơ bản: 

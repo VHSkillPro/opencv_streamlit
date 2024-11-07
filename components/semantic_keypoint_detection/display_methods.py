@@ -11,6 +11,38 @@ from services.semantic_keypoint_detection.services import (
 sift = cv2.SIFT_create()
 orb = cv2.ORB_create()
 
+pr_sift: np.ndarray = np.load(os.path.join(SERVICE_DIR, "pr_sift.npy"))
+pr_orb: np.ndarray = np.load(os.path.join(SERVICE_DIR, "pr_orb.npy"))
+
+precision_sift = pr_sift[:, :, 0]
+recall_sift = pr_sift[:, :, 1]
+precision_orb = pr_orb[:, :, 0]
+recall_orb = pr_orb[:, :, 1]
+
+id_image_of_type = [0 for _ in range(8)]
+for type in range(8):
+    if type == 2:
+        continue
+
+    idx = []
+    if type in [0, 1, 4, 5, 6]:
+        diff_precision = precision_orb[type] - precision_sift[type]
+        diff_recall = recall_orb[type] - recall_sift[type]
+        idx = np.where((diff_precision > 0) & (diff_recall > 0))[0]
+    elif type == 7:
+        diff_precision = precision_sift[type] - precision_orb[type]
+        diff_recall = recall_sift[type] - recall_orb[type]
+        idx = np.where((diff_precision > 0) & (diff_recall > 0))[0]
+    else:
+        diff_precision = precision_sift[type] - precision_orb[type]
+        diff_recall = recall_orb[type] - recall_sift[type]
+        idx = np.where((diff_precision > 0) & (diff_recall > 0))[0]
+
+    precision = precision_orb[type][idx]
+    recall = recall_orb[type][idx]
+    pr = np.array([precision, recall]).T
+    id_image_of_type[type] = idx[pr.min(axis=1).argmax()]
+
 
 @st.fragment()
 def display_methods():
@@ -40,15 +72,21 @@ def display_methods():
             )
 
         with cols_example[0]:
-            st.markdown("##### 2.1.3. Ví dụ trên Synthetic Shapes Datasets:")
+            st.markdown(
+                "##### 2.1.3. Ví dụ trên Synthetic Shapes Dataset khi sử dụng SIFT:"
+            )
             cols = [st.columns(2) for _ in range(4)]
 
             for i in range(8):
-                image = cv2.imread(os.path.join(DATATYPES[i], "images", "0.png"))
+                image = cv2.imread(
+                    os.path.join(DATATYPES[i], "images", f"{id_image_of_type[i]}.png")
+                )
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = sift.detect(gray, None)
 
-                ground_truth = np.load(os.path.join(DATATYPES[i], "points", "0.npy"))
+                ground_truth = np.load(
+                    os.path.join(DATATYPES[i], "points", f"{id_image_of_type[i]}.npy")
+                )
                 image = draw_points(
                     image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
                 )
@@ -82,15 +120,21 @@ def display_methods():
             )
 
         with cols_example[1]:
-            st.markdown("##### 2.2.3. Ví dụ trên Synthetic Shapes Datasets:")
+            st.markdown(
+                "##### 2.2.3. Ví dụ trên Synthetic Shapes Dataset khi sử dụng ORB:"
+            )
             cols = [st.columns(2) for _ in range(4)]
 
             for i in range(8):
-                image = cv2.imread(os.path.join(DATATYPES[i], "images", "0.png"))
+                image = cv2.imread(
+                    os.path.join(DATATYPES[i], "images", f"{id_image_of_type[i]}.png")
+                )
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = orb.detect(gray, None)
 
-                ground_truth = np.load(os.path.join(DATATYPES[i], "points", "0.npy"))
+                ground_truth = np.load(
+                    os.path.join(DATATYPES[i], "points", f"{id_image_of_type[i]}.npy")
+                )
                 image = draw_points(
                     image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
                 )
