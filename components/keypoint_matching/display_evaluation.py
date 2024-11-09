@@ -18,7 +18,7 @@ def display_evaluation():
             - normType = **cv2.NORM_HAMMING** (sử dụng **Hamming** để tính khoảng cách giữa hai **description**).
             - crossCheck = **True** (chỉ lấy các keypoint matching $(i, j)$ mà sao cho description thứ $i$ 
             trong tập hợp $A$ khớp với description thứ $j$ trong tập hợp $B$ và ngược lại).
-        - Độ đo được sử dụng là **accuracy**, được tính bằng tỉ lệ số keypoint matching trên tổng số keypoint.
+        - Độ đo được sử dụng là **accuracy**, được tính bằng tỉ lệ số keypoint matching đúng trên tổng số keypoint.
         """
     )
     cols = st.columns(2, gap="large", vertical_alignment="center")
@@ -34,6 +34,37 @@ def display_evaluation():
             caption="Khoảng cách Hamming",
             use_column_width=True,
         )
+
+    st.write(
+        """
+        - Cơ chế hoạt động của **Lowe's ratio test**:
+            - với mỗi keypoint trong ảnh gốc (ảnh thứ nhất), ta tìm hai keypoint gần nhất trong ảnh thứ hai 
+            dựa trên khoảng cách Euclidean của các descriptor. Giả sử:
+                - $D_1$ là khoảng cách giữa keypoint trong ảnh gốc và keypoint gần nhất trong ảnh thứ hai.
+                - $D_2$ là khoảng cách giữa keypoint trong ảnh gốc và keypoint gần nhất thứ hai trong ảnh thứ hai.
+            - Lowe's Ratio Test dựa trên tỷ lệ giữa $D_1$ và $D_2$:
+                - Nếu $\\frac{D_1}{D_2} < ratio$, ta giữ lại cặp keypoint trong ảnh gốc và keypoint gần nhất trong ảnh thứ hai.
+                - Ngược lại, ta loại bỏ keypoint trong ảnh gốc.
+        """,
+    )
+
+    st.write(
+        """
+        - Cơ chế hoạt động của **crossCheck**:
+            - Quá trình khớp theo chiều thuận:
+                - Đối với mỗi keypoint trong ảnh gốc (ảnh thứ nhất), ta tìm keypoint gần nhất trong ảnh thứ hai 
+                dựa trên khoảng cách Hamming của các descriptor.
+                - Quá trình này sẽ tạo ra một danh sách $L_1$ các keypoint matching $(i, j)$, 
+                trong đó $i$ là chỉ số của keypoint trong ảnh gốc và $j$ là chỉ số của keypoint gần nhất trong ảnh thứ hai.
+            - Quá trình khớp theo chiều ngược lại:
+                - Đối với mỗi keypoint trong ảnh thứ hai, ta tìm keypoint gần nhất trong ảnh gốc dựa trên khoảng cách Hamming của các descriptor.
+                - Quá trình này sẽ tạo ra một danh sách $L_2$ các keypoint matching $(j, i)$, 
+                trong đó $j$ là chỉ số của keypoint trong ảnh thứ hai và $i$ là chỉ số của keypoint gần nhất trong ảnh gốc.
+            - Quá trình kiểm tra chéo:
+                - Ta giữ lại các cặp keypoint matching $(i, j)$ trong $L_1$ mà sao cho $(j, i)$ cũng nằm trong $L_2$.
+        """
+    )
+
     st.write(
         """
         - Giải thích cho việc chọn tham số khác nhau giữa **SIFT** và **ORB**:
@@ -46,9 +77,8 @@ def display_evaluation():
         cho phép tính toán nhanh hơn và hiệu quả hơn khi so khớp các vectors nhị phân. 
         Vì các vectors nhị phân có thể dễ dàng trùng khớp một phần với nhiều vectors nhị phân khác nhau, 
         việc chỉ sử dụng một phép so khớp một chiều có thể dẫn đến nhiều matches nhiễu.
-        Khi **crossCheck = True**, **BFMatcher** chỉ giữ lại các cặp descriptors thỏa mãn khớp hai chiều. 
-        Điều này có nghĩa là nếu descriptor $A$ trong ảnh $1$ khớp với descriptor $B$ trong ảnh $2$, 
-        thì descriptor $B$ cũng phải khớp lại với descriptor $A$, từ đó giúp loại bỏ các điểm khớp yếu và nhiễu, 
+        Khi **crossCheck = True**, **BFMatcher** chỉ giữ lại các cặp descriptors thỏa mãn khớp hai chiều, 
+        từ đó giúp loại bỏ các điểm khớp yếu và nhiễu, 
         tăng độ chính xác của kết quả.
             - **Lowe's ratio test** hoạt động dựa trên việc tính tỷ lệ khoảng cách giữa match tốt nhất và match tốt thứ hai. 
             Đối với các descriptors của **SIFT** và **SuperPoint**, điều này giúp phát hiện những điểm khớp không đủ 

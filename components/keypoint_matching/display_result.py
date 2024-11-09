@@ -32,15 +32,15 @@ def display_result():
         """
         - Nhận xét:
             - Đối với **SIFT**:
-                - Ở các góc xoay nhỏ ($0\degree$ đến $20\degree$), SIFT có độ chính xác cao, gần bằng $1$.
-                - Tuy nhiên, khi góc xoay tăng lên (khoảng từ $30\degree$ trở lên), 
-                độ chính xác của **SIFT** giảm dần và duy trì ở mức khoảng $0.4$ đến $0.6$.
+                - Ở các góc xoay nhỏ ($0\degree$ đến $30\degree$), **SIFT** có độ chính xác cao trên $0.6$, nhưng vẫn thấp nhất trong $3$ thuật toán.
+                - Tuy nhiên, khi góc xoay tăng lên (khoảng từ $40\degree$ trở lên), độ chính xác của **SIFT** giảm dần dưới mức $0.3$.
             - Đối với **ORB**:
-                - **ORB** giữ được độ chính xác tốt hơn **SIFT** khi xoay ảnh, 
-                với độ chính xác dao động quanh mức $0.5$ - $0.7$ ở các góc xoay từ $30\degree$ đến $350\degree$.
+                - Ở các góc xoay nhỏ ($0\degree$ đến $30\degree$), **ORB** cho thấy độ chính xác cao hơn **SIFT**.
+                - **ORB** giữ được độ chính xác tốt hơn **SIFT** và **SuperPoint** khi xoay ảnh với góc lớn (từ $40\degree$ đến $320\degree$),
+                với độ chính xác dao động quanh mức $0.08$ - $0.23$ ở các góc xoay.
             - Đối với **SuperPoint**:
-                - **SuperPoint** cho thấy độ chính xác cao nhất ở các góc nhỏ ($0\degree$ đến $10\degree$), nhưng giảm mạnh khi góc xoay lớn hơn.
-                - Ở hầu hết các góc xoay từ $30\degree$ trở lên, độ chính xác của **SuperPoint** duy trì ở mức thấp, khoảng $0.2$ đến $0.4$. 
+                - **SuperPoint** cho thấy độ chính xác cao nhất ở các góc nhỏ ($0\degree$ đến $30\degree$), nhưng giảm mạnh khi góc xoay lớn hơn.
+                - Ở hầu hết các góc xoay từ $40\degree$ trở lên, độ chính xác của **SuperPoint** duy trì ở mức thấp, dưới $0.3$. 
         """
     )
 
