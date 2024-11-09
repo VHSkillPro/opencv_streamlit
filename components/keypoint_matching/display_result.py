@@ -44,20 +44,40 @@ def display_result():
         """
     )
 
+    st.write(
+        "- Một số kết quả keypoint matching của $3$ thuật toán với góc xoay $10\degree$:"
+    )
+    cols = st.columns(3)
+    cols[0].subheader("4.1. SIFT")
+    cols[1].subheader("4.2. ORB")
+    cols[2].subheader("4.3. SuperPoint")
+
     for type in [0, 1, 3, 4, 5, 6, 7]:
         cols = st.columns(3)
+
+        sift_match_len = np.load(
+            os.path.join(SERVICE_DIR, "results", f"sift_{type}_10.npy")
+        )
         cols[0].image(
             os.path.join(SERVICE_DIR, "results", f"sift_{type}_10.png"),
-            caption=f"SIFT - Góc xoay 10 độ",
+            caption=f"{sift_match_len[0]} / {sift_match_len[1]} = {round(sift_match_len[0] / sift_match_len[1], 4)}% keypoints matched",
             use_column_width=True,
+        )
+
+        orb_match_len = np.load(
+            os.path.join(SERVICE_DIR, "results", f"orb_{type}_10.npy")
         )
         cols[1].image(
             os.path.join(SERVICE_DIR, "results", f"orb_{type}_10.png"),
-            caption=f"ORB - Góc xoay 10 độ",
+            caption=f"{orb_match_len[0]} / {orb_match_len[1]} = {round(orb_match_len[0] / orb_match_len[1], 4)}% keypoints matched",
             use_column_width=True,
+        )
+
+        superpoint_match_len = np.load(
+            os.path.join(SERVICE_DIR, "results", f"superpoint_{type}_10.npy")
         )
         cols[2].image(
             os.path.join(SERVICE_DIR, "results", f"superpoint_{type}_10.png"),
-            caption=f"SuperPoint - Góc xoay 10 độ",
+            caption=f"{superpoint_match_len[0]} / {superpoint_match_len[1]} = {round(superpoint_match_len[0] / superpoint_match_len[1], 4)}% keypoints matched",
             use_column_width=True,
         )
