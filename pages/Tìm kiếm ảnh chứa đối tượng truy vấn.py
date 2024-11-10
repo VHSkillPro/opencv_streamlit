@@ -1,6 +1,5 @@
-import streamlit as st
 from PIL import Image
-from components.image_search_engine.display_image_search import display_image_search
+import streamlit as st
 
 st.set_page_config(
     page_title="Tìm kiếm ảnh chứa đối tượng truy vấn",
@@ -9,6 +8,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("Tìm kiếm ảnh chứa đối tượng truy vấn")
+from components.image_search_engine.display_image_search import display_image_search
 
+st.title("Tìm kiếm ảnh chứa đối tượng truy vấn")
 display_image_search()

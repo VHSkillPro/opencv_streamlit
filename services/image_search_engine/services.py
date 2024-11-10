@@ -1,12 +1,13 @@
 import os
 import cv2
 import numpy as np
-
-DATASET_DIR = "./services/image_search_engine/val2017"
-images_name = os.listdir(os.path.join(DATASET_DIR, "images"))
+from components.image_search_engine import load_cache
 
 orb = cv2.ORB_create()
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+images_name, all_descriptors = load_cache()
+DATASET_DIR = "./services/image_search_engine/val2017"
 
 
 def search_image(img: cv2.typing.MatLike, top_k: int, mybar=None) -> list[str]:
@@ -26,11 +27,9 @@ def search_image(img: cv2.typing.MatLike, top_k: int, mybar=None) -> list[str]:
     _, query_descriptors_270 = orb.detectAndCompute(gray_scale_270, None)
 
     results = []
-    for image_name in images_name:
-        image_name_no_ext = os.path.splitext(image_name)[0]
-        descriptors = np.load(
-            os.path.join(DATASET_DIR, "descriptors", f"{image_name_no_ext}.npy")
-        )
+    for idx in range(len(images_name)):
+        image_name = images_name[idx]
+        descriptors = all_descriptors[idx]
 
         matches = bf.match(query_descriptors, descriptors)
         matches_90 = bf.match(query_descriptors_90, descriptors)
