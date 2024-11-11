@@ -78,14 +78,16 @@ def display_methods():
             cols = [st.columns(2) for _ in range(4)]
 
             for i in range(8):
-                image = cv2.imread(
-                    os.path.join(DATATYPES[i], "images", f"{id_image_of_type[i]}.png")
-                )
+                idx = id_image_of_type[i]
+                precision = precision_sift[i][idx]
+                recall = recall_sift[i][idx]
+
+                image = cv2.imread(os.path.join(DATATYPES[i], "images", f"{idx}.png"))
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = sift.detect(gray, None)
 
                 ground_truth = np.load(
-                    os.path.join(DATATYPES[i], "points", f"{id_image_of_type[i]}.npy")
+                    os.path.join(DATATYPES[i], "points", f"{idx}.npy")
                 )
                 image = draw_points(
                     image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
@@ -96,7 +98,7 @@ def display_methods():
                 cols[r][c].image(
                     image,
                     use_column_width=True,
-                    caption=f"Hình 2.1.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")}",
+                    caption=f"Hình 2.1.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")} - Precision: {precision:.2f} - Recall: {recall:.2f}",
                 )
 
     with st.container():
@@ -127,14 +129,16 @@ def display_methods():
             cols = [st.columns(2) for _ in range(4)]
 
             for i in range(8):
-                image = cv2.imread(
-                    os.path.join(DATATYPES[i], "images", f"{id_image_of_type[i]}.png")
-                )
+                idx = id_image_of_type[i]
+                precision = precision_orb[i][idx]
+                recall = recall_orb[i][idx]
+
+                image = cv2.imread(os.path.join(DATATYPES[i], "images", f"{idx}.png"))
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 keypoints = orb.detect(gray, None)
 
                 ground_truth = np.load(
-                    os.path.join(DATATYPES[i], "points", f"{id_image_of_type[i]}.npy")
+                    os.path.join(DATATYPES[i], "points", f"{idx}.npy")
                 )
                 image = draw_points(
                     image, [(kp.pt[1], kp.pt[0]) for kp in keypoints], (255, 0, 0), 2
@@ -145,7 +149,7 @@ def display_methods():
                 cols[r][c].image(
                     image,
                     use_column_width=True,
-                    caption=f"Hình 2.2.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")}",
+                    caption=f"Hình 2.2.3.{i + 1}: {DATATYPES[i].split("/")[-1].replace("draw_", "")} - Precision: {precision:.2f} - Recall: {recall:.2f}",
                 )
 
         st.write(
