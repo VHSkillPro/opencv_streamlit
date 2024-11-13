@@ -20,4 +20,5 @@ def load_cache():
             os.path.join(DATASET_DIR, "descriptors", f"{image_name_no_ext}.npy")
         )
         descriptors.append(descriptor)
+
     return images_name, descriptors
