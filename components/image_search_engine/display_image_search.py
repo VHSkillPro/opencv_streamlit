@@ -7,6 +7,7 @@ from services.image_search_engine.services import search_image
 
 @st.fragment()
 def display_image_search():
+    st.header("3. Tìm kiếm ảnh chứa đối tượng truy vấn")
     with st.form(key="form_image_search"):
         col1, col2 = st.columns([3, 1])
         uploaded_image = col1.file_uploader(
