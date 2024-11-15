@@ -7,7 +7,7 @@ from services.image_search_engine.superpoint import SuperPointFrontend
 orb = cv2.ORB_create()
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-images_name, all_descriptors, all_keypoints = load_cache()
+images_name, all_descriptors = load_cache()
 DATASET_DIR = "./services/image_search_engine/val2017"
 
 
