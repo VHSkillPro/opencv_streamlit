@@ -30,5 +30,9 @@ st.navigation(
             "_pages/instance_search.py",
             title="7. Tìm kiếm ảnh chứa đối tượng truy vấn",
         ),
+        st.Page(
+            "_pages/tracking.py",
+            title="8. Theo dõi đối tượng",
+        ),
     ]
 ).run()
