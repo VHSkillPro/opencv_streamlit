@@ -34,5 +34,9 @@ st.navigation(
             "_pages/tracking.py",
             title="8. Theo dõi đối tượng",
         ),
+        st.Page(
+            "_pages/sort_mot.py",
+            title="9. Thuật toán SORT (Simple Online Realtime Tracking)",
+        ),
     ]
 ).run()
