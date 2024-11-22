@@ -32,7 +32,7 @@ st.navigation(
         ),
         st.Page(
             "_pages/tracking.py",
-            title="8. Theo dõi đối tượng",
+            title="8. Theo dõi đối tượng (SOT) bằng thuật toán KCF",
         ),
         st.Page(
             "_pages/sort_mot.py",
