@@ -94,6 +94,8 @@ def display_result():
             rotated_keypoints,
             sift_matches,
             None,
+            matchColor=(0, 255, 0),
+            singlePointColor=(255, 0, 0),
         )
         orb_image_matches = cv2.drawMatches(
             image,
@@ -102,6 +104,8 @@ def display_result():
             rotated_keypoints,
             orb_matches,
             None,
+            matchColor=(0, 255, 0),
+            singlePointColor=(255, 0, 0),
         )
         superpoint_image_matches = cv2.drawMatches(
             image,
@@ -110,6 +114,8 @@ def display_result():
             rotated_keypoints,
             superpoint_matches,
             None,
+            matchColor=(0, 255, 0),
+            singlePointColor=(255, 0, 0),
         )
 
         cols = st.columns(3)
