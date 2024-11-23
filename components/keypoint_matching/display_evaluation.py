@@ -7,7 +7,10 @@ def display_evaluation():
     st.write(
         """
         - Đánh giá mức độ **Matching Keypoint** bằng **SIFT**, **ORB** và **SuperPoint** 
-        trên tiêu chí **Rotation** với các góc quay $0\degree, 10\degree, 20\degree, ..., 350\degree$.
+        trên tiêu chí **Rotation** với các góc quay $0\degree, 10\degree, 20\degree, ..., 350\degree$ 
+        dựa trên keypoint ground truth đã cung cấp sẵn trong tập dữ liệu.
+        - Đối với một tập keypoint ground truth, sau khi xoay ảnh một góc quay $\theta$, các keypoint nằm 
+        trong khung hình sẽ được giữ lại, các keypoint nằm ngoài khung hình sẽ bị loại bỏ.
         - Đối với **SIFT** và **SuperPoint**:
             - Sử dụng **Brute-Force Matching** để tìm ra các keypoint matching 
         với tham số:
