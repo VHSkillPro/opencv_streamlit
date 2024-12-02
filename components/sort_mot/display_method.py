@@ -18,7 +18,7 @@ def display_method():
     st.columns([1, 8, 1])[1].image(
         "services/sort_mot/overview-SORT.png",
         use_column_width=True,
-        caption="Hình ảnh minh họa quá trình hoạt động của SORT với mô hình detector được sử dụng là YOLOv5 (Nguồn: Improved sheep identification and tracking algorithm based on YOLOv5 + SORT methods)",
+        caption="Hình ảnh minh họa quá trình hoạt động của SORT",
     )
 
     st.write(
@@ -27,7 +27,7 @@ def display_method():
         Quá trình hoạt động của **SORT** bao gồm bốn bước sau:
             - Bước 1: **Phát hiện** các đối tượng trong frame hiện tại bằng mô hình detector.
             - Bước 2: **Dự đoán** vị trí các đối tượng trong frame hiện tại dựa trên trạng thái của các đối tượng trong frame trước và **Kalman Filter**.
-            - Bước 3: **ghép nối** các vị trí phát hiện được ở **bước 1** với các vị trí dự đoán ở **bước 2** bằng thuật toán **Hungarian**.
+            - Bước 3: **Ghép nối** các vị trí phát hiện được ở **bước 1** với các vị trí dự đoán ở **bước 2** bằng thuật toán **Hungarian**.
             - Bước 4: **Cập nhật** trạng thái của các đối tượng dựa trên kết quả ghép nối ở **bước 3**.
         """
     )
