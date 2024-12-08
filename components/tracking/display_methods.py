@@ -11,3 +11,8 @@ def display_methods():
         vào năm 2015, trong bài báo [High-Speed Tracking with Kernelized Correlation Filters](https://arxiv.org/pdf/1404.7584).
         """
     )
+    st.image(
+        "services/tracking/KCF-flowchart.png",
+        use_column_width=True,
+        caption="Hình ảnh minh họa thuật toán KCF",
+    )
