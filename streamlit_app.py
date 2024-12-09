@@ -38,5 +38,9 @@ st.navigation(
             "_pages/sort_mot.py",
             title="9. Thuật toán SORT (Simple Online Realtime Tracking)",
         ),
+        st.Page(
+            "_pages/handwriting_letter_recognition.py",
+            title="10. Nhận dạng chữ viết tay",
+        ),
     ]
 ).run()

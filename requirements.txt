@@ -10,3 +10,5 @@ scipy
 PyQt6
 torch
 tqdm
+keras
+tensorflow
