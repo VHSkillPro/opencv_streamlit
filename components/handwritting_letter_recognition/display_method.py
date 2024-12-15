@@ -9,9 +9,7 @@ def display_method():
         - Mô hình **CNN** được sử dụng để nhận dạng chữ số viết tay trong bài toán này với kiến trúc như sau:
         """
     )
-    st.image(
-        "services/handwriting_letter_recognition/cnn_flow.png", use_column_width=True
-    )
+    st.image("services/handwriting_letter_recognition/cnn_flow.png")
     st.write(
         """
         - Trong đó:
@@ -31,6 +29,6 @@ def display_method():
     )
     st.columns([1, 4, 1])[1].image(
         "services/handwriting_letter_recognition/summary.jpg",
-        use_column_width=True,
         caption="Tóm tắt mô hình mạng CNN được sử dụng trong bài toán nhận dạng chữ số viết tay. (Sử dụng thư viện Pytorch)",
+        use_column_width=True,
     )

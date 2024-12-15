@@ -34,8 +34,7 @@ def display_dataset():
             if cnt_images[label] == 0:
                 train_images_columns[label][0].write(label)
             train_images_columns[label][cnt_images[label] + 1].image(
-                image.squeeze(0).cpu().numpy(),
-                use_column_width=True,
+                image.squeeze(0).cpu().numpy()
             )
             cnt_images[label] += 1
         if np.sum(cnt_images) == 300:
