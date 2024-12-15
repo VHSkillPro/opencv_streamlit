@@ -1,56 +1,13 @@
 import json
-from matplotlib import pyplot as plt
-import torch
-import streamlit as st
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
-from services.handwriting_letter_recognition.model import MNISTModel
-from sklearn.metrics import confusion_matrix
 import seaborn as sns
-
-test_dataset = datasets.MNIST(
-    "services/handwriting_letter_recognition",
-    train=False,
-    download=True,
-    transform=transforms.ToTensor(),
-)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
+import streamlit as st
+from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
+from components.handwritting_letter_recognition import test_phase
 
 with open("services/handwriting_letter_recognition/history.json", "r") as fi:
     history = json.load(fi)
 history["epoch"] = list(range(1, 21))
-
-device = "cpu"
-model = MNISTModel().to(device)
-model.load_state_dict(
-    torch.load(
-        "services/handwriting_letter_recognition/mnist_model.pth",
-        weights_only=True,
-        map_location=torch.device("cpu"),
-    )
-)
-model.eval()
-
-
-@st.cache_resource()
-def test_phase():
-    all_labels = []
-    all_predicteds = []
-
-    with torch.no_grad():
-        correct = 0
-        total = len(test_dataset)
-        for images, labels in test_loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            probabilities = torch.softmax(outputs, dim=1)
-            predicted = torch.argmax(probabilities, dim=1)
-            correct += (predicted == labels).sum().item()
-
-            all_labels.extend(labels.cpu().numpy())
-            all_predicteds.extend(predicted.cpu().numpy())
-
-    return all_labels, all_predicteds, correct / total
 
 
 @st.fragment()
@@ -66,7 +23,7 @@ def display_result():
         use_container_width=True,
     )
 
-    labels, predicteds, accuracy = test_phase()
+    labels, predicteds, __, accuracy = test_phase()
     st.write(f"- Đánh giá trên test set với **accuracy** = ${accuracy:.4f}$.")
     st.write("- Kết quả của ma trận nhầm lẫn:")
 

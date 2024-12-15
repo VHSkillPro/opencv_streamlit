@@ -9,7 +9,9 @@ def display_method():
         - Mô hình **CNN** được sử dụng để nhận dạng chữ số viết tay trong bài toán này với kiến trúc như sau:
         """
     )
-    st.image("services/handwriting_letter_recognition/cnn_flow.png")
+    st.columns([1, 6, 1])[1].image(
+        "services/handwriting_letter_recognition/cnn_flow.png", use_column_width=True
+    )
     st.write(
         """
         - Trong đó:
