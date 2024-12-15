@@ -1,6 +1,5 @@
 from PIL import Image
 import streamlit as st
-
 from components.handwritting_letter_recognition.display_dataset import display_dataset
 from components.handwritting_letter_recognition.display_method import display_method
 from components.handwritting_letter_recognition.display_result import display_result

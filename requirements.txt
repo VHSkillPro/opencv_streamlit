@@ -10,5 +10,6 @@ scipy
 PyQt6
 torch
 tqdm
-keras
-tensorflow
+torchvision
+torchsummary
+seaborn
