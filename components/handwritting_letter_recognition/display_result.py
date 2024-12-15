@@ -20,7 +20,7 @@ with open("services/handwriting_letter_recognition/history.json", "r") as fi:
     history = json.load(fi)
 history["epoch"] = list(range(1, 21))
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 model = MNISTModel().to(device)
 model.load_state_dict(
     torch.load(
