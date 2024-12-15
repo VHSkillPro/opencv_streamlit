@@ -24,7 +24,9 @@ device = "cpu"
 model = MNISTModel().to(device)
 model.load_state_dict(
     torch.load(
-        "services/handwriting_letter_recognition/mnist_model.pth", weights_only=True
+        "services/handwriting_letter_recognition/mnist_model.pth",
+        weights_only=True,
+        map_location=torch.device("cpu"),
     )
 )
 model.eval()
