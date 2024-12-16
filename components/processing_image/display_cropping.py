@@ -33,8 +33,11 @@ def display_cropping_section(image: cv2.typing.MatLike):
     with cols[0]:
         canvas_result, ratio = display_st_canvas(image)
     
-    objects = canvas_result.json_data["objects"]
-    if len(objects) == 0:
+    objects = None
+    if canvas_result is not None and canvas_result.json_data is not None:
+        objects = canvas_result.json_data["objects"]
+        
+    if objects is None or len(objects) == 0:
         st.warning("Vui lòng chọn vùng cần cropping")
     elif len(objects) > 1:
         st.warning("Chỉ chọn một vùng cần cropping")
