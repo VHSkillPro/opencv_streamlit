@@ -42,5 +42,9 @@ st.navigation(
             "_pages/handwriting_letter_recognition.py",
             title="10. Nhận dạng chữ viết tay",
         ),
+        st.Page(
+            "_pages/processing_image.py",
+            title="11. Ứng dụng xử lý ảnh"
+        )
     ]
 ).run()
